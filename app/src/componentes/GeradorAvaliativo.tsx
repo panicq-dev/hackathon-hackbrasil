@@ -1,13 +1,22 @@
+'use client';
 import Image from "next/image";
 import { ChevronDown, Link as LinkIcon, Upload, Sparkles, Star } from "lucide-react";
 import { gerarAvaliacao } from "@/app/action";
 import { useState } from "react";
-import { EstruturaQuestao } from "@/app/src/types/Questao";
+import { EstruturaQuestao } from "@/app/src/types/Questao"; 
 
 export default function GeradorAvaliativo() {
   const [conteudoPrincipal, setConteudoPrincipal] = useState('');
   const [conteudoDetalhado, setConteudoDetalhado] = useState('');
   const [resultadoJson, setResultadoJson] = useState<EstruturaQuestao | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const resposta = await gerarAvaliacao(conteudoPrincipal, conteudoDetalhado);
+    setResultadoJson(resposta);
+    console.log("Resultado:", resposta);
+  }
+
   return (
     <div className="gv-page relative flex min-h-screen flex-1 flex-col items-center justify-center overflow-hidden px-4 py-12">
       <style>{`
@@ -105,30 +114,8 @@ export default function GeradorAvaliativo() {
         .gv-anim-wiggle { animation: gv-wiggle 2.4s ease-in-out infinite; }
       `}</style>
 
-      {/* floating doodles */}
-      <svg viewBox="0 0 120 70" className="gv-anim-drift absolute left-[6%] top-[12%] w-28" aria-hidden>
-        <path d="M22 58c-11 0-19-8-19-17S12 25 22 25c2-11 12-19 24-19 13 0 24 9 26 21 3-3 8-5 13-5 11 0 19 8 19 18s-9 18-20 18H22z"
-          fill="#fff" stroke="#0A2E4A" strokeWidth="3.5" strokeLinejoin="round" />
-      </svg>
-      <svg viewBox="0 0 120 70" className="gv-anim-drift absolute right-[8%] top-[26%] hidden w-24 md:block" aria-hidden>
-        <path d="M22 58c-11 0-19-8-19-17S12 25 22 25c2-11 12-19 24-19 13 0 24 9 26 21 3-3 8-5 13-5 11 0 19 8 19 18s-9 18-20 18H22z"
-          fill="#fff" stroke="#0A2E4A" strokeWidth="3.5" strokeLinejoin="round" />
-      </svg>
-      <svg viewBox="0 0 40 40" className="gv-anim-wiggle absolute left-[14%] top-[62%] w-8" aria-hidden>
-        <path d="M20 2c2 8 4 12 12 18-8 6-10 10-12 18-2-8-4-12-12-18 8-6 10-10 12-18z" fill="#FFC53D" stroke="#0A2E4A" strokeWidth="2.5" strokeLinejoin="round" />
-      </svg>
-      <svg viewBox="0 0 40 40" className="gv-anim-wiggle absolute right-[16%] top-[14%] w-8" aria-hidden>
-        <path d="M20 2c2 8 4 12 12 18-8 6-10 10-12 18-2-8-4-12-12-18 8-6 10-10 12-18z" fill="#4ECDC4" stroke="#0A2E4A" strokeWidth="2.5" strokeLinejoin="round" />
-      </svg>
-      <svg viewBox="0 0 40 40" className="gv-anim-wiggle absolute bottom-[10%] right-[24%] hidden w-8 md:block" aria-hidden>
-        <path d="M20 2c2 8 4 12 12 18-8 6-10 10-12 18-2-8-4-12-12-18 8-6 10-10 12-18z" fill="#FF6B6B" stroke="#0A2E4A" strokeWidth="2.5" strokeLinejoin="round" />
-      </svg>
-      <span className="gv-bubble gv-anim-bob absolute left-[22%] top-[30%] h-6 w-6" aria-hidden />
-      <span className="gv-bubble gv-anim-drift absolute bottom-[16%] left-[30%] h-11 w-11" aria-hidden />
-      <span className="gv-bubble gv-anim-bob absolute bottom-[30%] right-[12%] h-8 w-8" aria-hidden />
-      <span className="gv-bubble gv-anim-drift absolute right-[30%] top-[8%] h-4 w-4" aria-hidden />
-
-      <div className="gv-card relative w-full max-w-xl p-7 sm:p-9">
+      {/* O formulário agora envolve toda a estrutura interativa para o onSubmit funcionar */}
+      <form onSubmit={handleSubmit} className="gv-card relative w-full max-w-xl p-7 sm:p-9">
         <div className="gv-sticker absolute -right-3 -top-4 -rotate-6 bg-[#FF6B6B] px-3 py-1.5 text-xs text-white">
           o prof que aprova!
         </div>
@@ -139,7 +126,7 @@ export default function GeradorAvaliativo() {
             <span className="gv-halo" aria-hidden />
             <div className="gv-avatar">
               <div className="relative h-full w-full">
-               
+                {/* Imagem de avatar pra colocar lá pra frente.*/}
               </div>
             </div>
             <span className="gv-sticker absolute -bottom-2 -right-6 rotate-6 bg-[#4ECDC4] px-2.5 py-1 text-xs text-[#0A2E4A]">
@@ -157,7 +144,7 @@ export default function GeradorAvaliativo() {
         </p>
 
         <div className="space-y-5 text-sm">
-          {/* Linha 1: Turma e Questões */}
+          {/* Turma e questões */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <label className="gv-label">Para qual turma?</label>
@@ -184,7 +171,7 @@ export default function GeradorAvaliativo() {
             </div>
           </div>
 
-          {/* Mesclar com Banco de questões */}
+          {/* Banco de Questões? */}
           <div className="space-y-2">
             <label className="gv-label">Mesclar com Banco de questões?</label>
             <div className="relative">
@@ -202,21 +189,30 @@ export default function GeradorAvaliativo() {
             <p className="text-xs font-bold text-[#4A6B85]">Selecione ou relate os conteúdos trabalhados.</p>
             <input
               type="text"
-              placeholder="Adicionar ou descrever outro conteúdo..."
+              value={conteudoPrincipal}
+              onChange={(e) => setConteudoPrincipal(e.target.value)}
+              placeholder="Ex: Equação do Segundo Grau..."
               className="gv-field text-xs"
+              required
             />
           </div>
 
-          {/* Descrição mais detalhada */}
+          {/* Descrição detalhada*/}
           <div className="space-y-2 pt-1">
             <div className="flex items-center justify-between">
               <label className="gv-label">Descrição mais detalhada</label>
               <span className="text-xs font-extrabold text-[#4A6B85]">(opcional)</span>
             </div>
-            <textarea rows={3} placeholder="Digite detalhes adicionais..." className="gv-field resize-none text-xs" />
+            <textarea 
+              rows={3} 
+              value={conteudoDetalhado}
+              onChange={(e) => setConteudoDetalhado(e.target.value)}
+              placeholder="Digite detalhes adicionais..." 
+              className="gv-field resize-none text-xs" 
+            />
           </div>
 
-          {/* Conteúdos relacionados */}
+          {/* Anexos */}
           <div className="space-y-2 pt-1">
             <div className="flex items-center gap-2">
               <span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-[#0A2E4A] bg-[#2496ED]">
@@ -235,9 +231,9 @@ export default function GeradorAvaliativo() {
             </label>
           </div>
 
-          {/* Botão */}
+          {/* Submit */}
           <div className="pt-4">
-            <button className="gv-btn gv-press">
+            <button type="submit" className="gv-btn gv-press">
               <Sparkles className="h-5 w-5" />
               Gerar avaliação
             </button>
@@ -245,10 +241,10 @@ export default function GeradorAvaliativo() {
 
           <p className="flex items-center justify-center gap-1.5 pt-1 text-center text-xs font-extrabold text-[#4A6B85]">
             <Star className="h-3.5 w-3.5 fill-[#FFC53D] text-[#FFC53D]" />
-            você pode ajustar tudo depois
+            você pode ajustar tudo depois!
           </p>
         </div>
-      </div>
+      </form>
     </div>
   );
 }
