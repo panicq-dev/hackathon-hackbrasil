@@ -1,4 +1,4 @@
-import { pgTable, uniqueIndex, uuid, text, timestamp, index, foreignKey } from "drizzle-orm/pg-core"
+import { pgTable, uniqueIndex, uuid, text, timestamp, index, foreignKey, varchar } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
 
@@ -34,6 +34,7 @@ export const alunos = pgTable("alunos", {
 	senhaHash: text("senha_hash").notNull(),
 	turmaId: uuid("turma_id").notNull(),
 	criadoEm: timestamp("criado_em", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	matricula: varchar({ length: 20 }),
 }, (table) => [
 	uniqueIndex("alunos_email_uidx").using("btree", sql`lower(email)`),
 	index("alunos_turma_idx").using("btree", table.turmaId.asc().nullsLast().op("uuid_ops")),
