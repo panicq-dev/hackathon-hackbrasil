@@ -1,8 +1,7 @@
 import { pool } from "./index";
 
 async function testar() {
-  // SELECT
-  const { rows } = await pool.query("SELECT id, matricula, nome, email FROM alunos");
+  const { rows } = await pool.query("SELECT * FROM alunos");
   console.log(rows);
 
   await pool.end();

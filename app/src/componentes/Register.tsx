@@ -1,5 +1,8 @@
+
 'use client';
-import { Eye, EyeOff, Mail, Lock, User, IdCard, UserCheck, UserPlus, Star } from "lucide-react";
+
+import { registrarUsuario } from "@/app/actionRegister";
+import { Eye, EyeOff, Mail, Lock, User, Hash, UserPlus, Star } from "lucide-react";
 import { useState } from "react";
 import { Perfil } from "@/app/src/types/Perfil";
 
@@ -12,12 +15,14 @@ const fieldBase =
   "w-full rounded-[18px] border-[3px] border-[#0A2E4A] bg-[#EBF5FF] py-3 text-xs font-semibold text-[#0A2E4A] " +
   "shadow-[0_3px_0_0_#0A2E4A] transition-shadow placeholder:font-normal placeholder:text-[#5A7C99] " +
   "focus:outline-none focus:shadow-[0_3px_0_0_#0A2E4A,0_0_0_4px_rgba(36,150,237,0.3)]";
+
 const fieldIcon = `${fieldBase} pl-[3.1rem] pr-4`;
 const fieldIconAction = `${fieldBase} pl-[3.1rem] pr-[3.2rem]`;
 
 const iconBubble =
   "pointer-events-none absolute left-[0.7rem] top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center " +
   "rounded-full border-2 border-[#0A2E4A] bg-[#4ECDC4]";
+
 const eyeBtn =
   "absolute right-[0.6rem] top-1/2 flex h-7 w-7 -translate-y-1/2 cursor-pointer items-center justify-center " +
   "rounded-full border-2 border-[#0A2E4A] bg-[#FFC53D] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#2496ED]/30";
@@ -25,6 +30,7 @@ const eyeBtn =
 const tabBase =
   "rounded-2xl border-2 p-2 font-['Baloo_2'] text-base font-extrabold transition-colors " +
   "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#2496ED]/30";
+
 const tabClass = (ativa: boolean) =>
   `${tabBase} ${
     ativa
@@ -36,8 +42,8 @@ export default function Register() {
   const [perfil, setPerfil] = useState<Perfil>('professor');
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
-  const [matricula, setMatricula] = useState('');
-  const [emailProfessor, setEmailProfessor] = useState('');
+  const [idTurma, setIdTurma] = useState('');
+  const [idMatricula, setIdMatricula] = useState('');
   const [senha, setSenha] = useState('');
   const [confirmar, setConfirmar] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
@@ -52,19 +58,35 @@ export default function Register() {
       setErro('A senha precisa ter pelo menos 8 caracteres.');
       return;
     }
+
     if (senha !== confirmar) {
       setErro('As senhas não coincidem.');
       return;
     }
 
     setCarregando(true);
+
     try {
       const dados = perfil === 'professor'
         ? { perfil, nome, email, senha }
-        : { perfil, nome, matricula, email, emailProfessor, senha };
-      // TODO: chamar sua server action / API de registro
-      // await registrarUsuario(dados);
-      console.log(dados);
+        : {
+            perfil,
+            nome,
+            email,
+            idTurma: idTurma.trim(),
+            idMatricula: idMatricula.trim(),
+            senha
+          };
+
+      const res = await registrarUsuario(dados);
+
+      if (res?.erro) {
+        setErro(res.erro);
+        return;
+      }
+
+      window.location.href = '/login';
+
     } catch {
       setErro('Não foi possível criar a conta. Tente novamente.');
     } finally {
@@ -87,10 +109,20 @@ export default function Register() {
           bem-vindo!
         </div>
 
-        <h1 className="text-center font-['Baloo_2'] text-3xl font-extrabold">Criar conta</h1>
+        <h1 className="text-center font-['Baloo_2'] text-3xl font-extrabold">
+          Criar conta
+        </h1>
+
         <svg viewBox="0 0 220 14" className="mx-auto mb-2 mt-1 w-48" aria-hidden>
-          <path d="M4 9c18-8 34 6 52-1s34 6 52-1 34 6 52-1 34 6 52-1" fill="none" stroke="#2496ED" strokeWidth="5" strokeLinecap="round" />
+          <path
+            d="M4 9c18-8 34 6 52-1s34 6 52-1 34 6 52-1 34 6 52-1"
+            fill="none"
+            stroke="#2496ED"
+            strokeWidth="5"
+            strokeLinecap="round"
+          />
         </svg>
+
         <p className="mb-6 text-center text-sm font-bold text-[#4A6B85]">
           {perfil === 'professor'
             ? 'Cadastre-se e comece a montar suas avaliações.'
@@ -98,6 +130,7 @@ export default function Register() {
         </p>
 
         <div className="space-y-5 text-sm">
+
           {/* Perfil */}
           <div
             role="tablist"
@@ -108,16 +141,23 @@ export default function Register() {
               type="button"
               role="tab"
               aria-selected={perfil === 'professor'}
-              onClick={() => { setPerfil('professor'); setErro(''); }}
+              onClick={() => {
+                setPerfil('professor');
+                setErro('');
+              }}
               className={tabClass(perfil === 'professor')}
             >
               Professor
             </button>
+
             <button
               type="button"
               role="tab"
               aria-selected={perfil === 'aluno'}
-              onClick={() => { setPerfil('aluno'); setErro(''); }}
+              onClick={() => {
+                setPerfil('aluno');
+                setErro('');
+              }}
               className={tabClass(perfil === 'aluno')}
             >
               Aluno
@@ -126,9 +166,15 @@ export default function Register() {
 
           {/* Nome */}
           <div className="space-y-2">
-            <label htmlFor="nome" className={label}>Nome completo</label>
+            <label htmlFor="nome" className={label}>
+              Nome completo
+            </label>
+
             <div className="relative">
-              <span className={iconBubble}><User className="h-4 w-4" color={INK} /></span>
+              <span className={iconBubble}>
+                <User className="h-4 w-4" color={INK} />
+              </span>
+
               <input
                 id="nome"
                 type="text"
@@ -142,33 +188,17 @@ export default function Register() {
             </div>
           </div>
 
-          {/* Matrícula (aluno) */}
-          {perfil === 'aluno' && (
-            <div className="space-y-2">
-              <label htmlFor="matricula" className={label}>Matrícula</label>
-              <div className="relative">
-                <span className={iconBubble}><IdCard className="h-4 w-4" color={INK} /></span>
-                <input
-                  id="matricula"
-                  type="text"
-                  value={matricula}
-                  onChange={(e) => setMatricula(e.target.value)}
-                  placeholder="Ex: 2026012345"
-                  inputMode="numeric"
-                  className={fieldIcon}
-                  required
-                />
-              </div>
-            </div>
-          )}
-
           {/* E-mail */}
           <div className="space-y-2">
             <label htmlFor="email" className={label}>
               {perfil === 'professor' ? 'E-mail' : 'E-mail particular'}
             </label>
+
             <div className="relative">
-              <span className={iconBubble}><Mail className="h-4 w-4" color={INK} /></span>
+              <span className={iconBubble}>
+                <Mail className="h-4 w-4" color={INK} />
+              </span>
+
               <input
                 id="email"
                 type="email"
@@ -182,32 +212,79 @@ export default function Register() {
             </div>
           </div>
 
-          {/* E-mail do professor (aluno) */}
+          {/* ID da turma e matrícula */}
           {perfil === 'aluno' && (
-            <div className="space-y-2">
-              <label htmlFor="emailProfessor" className={label}>E-mail do professor</label>
-              <p className={hint}>Usado para você entrar na turma.</p>
-              <div className="relative">
-                <span className={iconBubble}><UserCheck className="h-4 w-4" color={INK} /></span>
-                <input
-                  id="emailProfessor"
-                  type="email"
-                  value={emailProfessor}
-                  onChange={(e) => setEmailProfessor(e.target.value)}
-                  placeholder="professor@escola.com.br"
-                  className={fieldIcon}
-                  required
-                />
+            <>
+              <div className="space-y-2">
+                <label htmlFor="idTurma" className={label}>
+                  ID da turma
+                </label>
+
+                <p className={hint}>
+                  Informado pelo seu professor.
+                </p>
+
+                <div className="relative">
+                  <span className={iconBubble}>
+                    <Hash className="h-4 w-4" color={INK} />
+                  </span>
+
+                  <input
+                    id="idTurma"
+                    type="text"
+                    value={idTurma}
+                    onChange={(e) => setIdTurma(e.target.value)}
+                    placeholder="Cole o ID da turma"
+                    autoComplete="off"
+                    className={fieldIcon}
+                    required
+                  />
+                </div>
               </div>
-            </div>
+
+              {/* ID da matrícula */}
+              <div className="space-y-2">
+                <label htmlFor="idMatricula" className={label}>
+                  ID da matrícula
+                </label>
+
+                <p className={hint}>
+                  Informe seu identificador de matrícula.
+                </p>
+
+                <div className="relative">
+                  <span className={iconBubble}>
+                    <Hash className="h-4 w-4" color={INK} />
+                  </span>
+
+                  <input
+                    id="idMatricula"
+                    type="text"
+                    value={idMatricula}
+                    onChange={(e) => setIdMatricula(e.target.value)}
+                    placeholder="Informe seu ID de matrícula"
+                    autoComplete="off"
+                    className={fieldIcon}
+                    required
+                  />
+                </div>
+              </div>
+            </>
           )}
 
           {/* Senhas */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+
             <div className="space-y-2">
-              <label htmlFor="senha" className={label}>Senha</label>
+              <label htmlFor="senha" className={label}>
+                Senha
+              </label>
+
               <div className="relative">
-                <span className={iconBubble}><Lock className="h-4 w-4" color={INK} /></span>
+                <span className={iconBubble}>
+                  <Lock className="h-4 w-4" color={INK} />
+                </span>
+
                 <input
                   id="senha"
                   type={mostrarSenha ? 'text' : 'password'}
@@ -218,6 +295,7 @@ export default function Register() {
                   className={fieldIconAction}
                   required
                 />
+
                 <button
                   type="button"
                   onClick={() => setMostrarSenha((v) => !v)}
@@ -232,9 +310,15 @@ export default function Register() {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="confirmar" className={label}>Confirmar senha</label>
+              <label htmlFor="confirmar" className={label}>
+                Confirmar senha
+              </label>
+
               <div className="relative">
-                <span className={iconBubble}><Lock className="h-4 w-4" color={INK} /></span>
+                <span className={iconBubble}>
+                  <Lock className="h-4 w-4" color={INK} />
+                </span>
+
                 <input
                   id="confirmar"
                   type={mostrarSenha ? 'text' : 'password'}
@@ -247,8 +331,10 @@ export default function Register() {
                 />
               </div>
             </div>
+
           </div>
 
+          {/* Erro */}
           {erro && (
             <p
               role="alert"
@@ -275,13 +361,20 @@ export default function Register() {
             </button>
           </div>
 
+          {/* Login */}
           <p className="flex items-center justify-center gap-1.5 pt-1 text-center text-xs font-extrabold text-[#4A6B85]">
             <Star className="h-3.5 w-3.5 fill-[#FFC53D] text-[#FFC53D]" />
+
             Já tem conta?{' '}
-            <a href="/login" className="font-black text-[#1D63ED] underline underline-offset-[3px] hover:text-[#0A2E4A]">
+
+            <a
+              href="/login"
+              className="font-black text-[#1D63ED] underline underline-offset-[3px] hover:text-[#0A2E4A]"
+            >
               Entrar
             </a>
           </p>
+
         </div>
       </form>
     </div>
