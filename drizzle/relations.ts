@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm/relations";
-import { professores, turmas, alunos, questoes, avaliacoes, avaliacaoTags } from "./schema";
+import { professores, turmas, alunos, questoes, materiasTag, avaliacoes } from "./schema";
 
 export const turmasRelations = relations(turmas, ({one, many}) => ({
 	professore: one(professores, {
@@ -7,6 +7,7 @@ export const turmasRelations = relations(turmas, ({one, many}) => ({
 		references: [professores.id]
 	}),
 	alunos: many(alunos),
+	avaliacoes: many(avaliacoes),
 }));
 
 export const professoresRelations = relations(professores, ({many}) => ({
@@ -27,19 +28,23 @@ export const questoesRelations = relations(questoes, ({one}) => ({
 		fields: [questoes.professorId],
 		references: [professores.id]
 	}),
+	materiasTag: one(materiasTag, {
+		fields: [questoes.materiaTagId],
+		references: [materiasTag.id]
+	}),
 }));
 
-export const avaliacoesRelations = relations(avaliacoes, ({one, many}) => ({
+export const materiasTagRelations = relations(materiasTag, ({many}) => ({
+	questoes: many(questoes),
+}));
+
+export const avaliacoesRelations = relations(avaliacoes, ({one}) => ({
 	professore: one(professores, {
 		fields: [avaliacoes.professorId],
 		references: [professores.id]
 	}),
-	avaliacaoTags: many(avaliacaoTags),
-}));
-
-export const avaliacaoTagsRelations = relations(avaliacaoTags, ({one}) => ({
-	avaliacoe: one(avaliacoes, {
-		fields: [avaliacaoTags.avaliacaoId],
-		references: [avaliacoes.id]
+	turma: one(turmas, {
+		fields: [avaliacoes.turmaId],
+		references: [turmas.id]
 	}),
 }));
