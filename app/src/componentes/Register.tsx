@@ -4,7 +4,7 @@
 import { registrarUsuario } from "@/app/actionRegister";
 import { Eye, EyeOff, Mail, Lock, User, Hash, UserPlus, Star } from "lucide-react";
 import { useState } from "react";
-import { Perfil } from "@/app/src/types/Perfil";
+import { Perfil } from "@/app/src/types/index";
 
 const INK = "#0A2E4A";
 

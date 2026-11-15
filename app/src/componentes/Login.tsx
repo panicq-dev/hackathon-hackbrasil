@@ -9,7 +9,7 @@ import {
   Star,
   LogIn,
 } from 'lucide-react';
-import { Perfil } from '@/app/src/types/Perfil';
+import { Perfil } from '@/app/src/types/index';
 
 const INK = '#0A2E4A';
 
