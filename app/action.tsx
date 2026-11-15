@@ -1,6 +1,6 @@
 'use server'
 import { GoogleGenAI } from '@google/genai';
-import { EstruturaQuestao } from './src/types/Questao';
+import { EstruturaQuestao } from './src/types/index';
 
 const ia = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -8,17 +8,18 @@ const ia = new GoogleGenAI({
 
 
 export async function gerarAvaliacao
-(conteudos_principais: string, conteudos_detalhados: string) : Promise<EstruturaQuestao | null>
+(conteudos_principais: string, conteudos_detalhados: string, quantidadeQuestoes: number) : Promise<EstruturaQuestao | null>
 {
     try {
         let prompt = 
         `Procure a fundo questões de vestibulinhos para jovens do Ensino Fundamental II, como Etec e afins para elaborar questões dos 
         seguintes conteúdos: ${conteudos_principais}, no qual deve se atentar a: ${conteudos_detalhados}.Forneça um enunciado bem elaborado e
-        contextualizado, sempre tendo como base os vestibulinhos e vestibulares.
+        contextualizado, sempre tendo como base os vestibulinhos e vestibulares. Um total de ${quantidadeQuestoes} questões.
         
         Além do enunciado da questão, retorne estritamente em formato JSON válido (sem bolocos de código em markdown em volta, apenas o JSON puro)
         com a seguinte estrutura:
         {
+        
         "enunciado": "Aqui vai o enunciado da questão, completo e contextualizado",
         "camposValidacao": 
         [
@@ -39,9 +40,11 @@ export async function gerarAvaliacao
                 e padrão do possível gap de aprendizagem do estudante, como por exemplo: "Raiz Quadrada" ou "Potenciação" ou "Sinais Matemáticos".
             }
         ],
+        
         }
         
         Regras importantes: 
+        - Deve ser as questões definidas pelo usuário. Então, dez questões? Cinco questões? Uma questão? O usuário define a quantidade de questões que deseja gerar, e o JSON deve conter exatamente a quantidade de questões solicitadas.
         - O JSON deve ser válido e não pode conter erros de sintaxe.
         - Os campos de validação devem ser claros e objetivos, permitindo que o usuário compreenda facilmente o que é esperado como resposta.
         - O mapeamento de erros deve ser útil para identificar possíveis lacunas de aprendizagem do estudante,

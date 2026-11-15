@@ -17,6 +17,7 @@ import Avaliacao from "@/app/src/componentes/Avaliacao";
 export default function GeradorAvaliativo() {
   const [conteudoPrincipal, setConteudoPrincipal] = useState('');
   const [conteudoDetalhado, setConteudoDetalhado] = useState('');
+  const [quantidadeQuestoes, setQuantidadeQuestoes] = useState(5);
   const [resultadoJson, setResultadoJson] = useState<EstruturaQuestao | null>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -24,7 +25,8 @@ export default function GeradorAvaliativo() {
 
     const resposta = await gerarAvaliacao(
       conteudoPrincipal,
-      conteudoDetalhado
+      conteudoDetalhado,
+      quantidadeQuestoes
     );
 
     setResultadoJson(resposta);

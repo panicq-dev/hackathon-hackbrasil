@@ -16,8 +16,6 @@ type Dados = {
   senha: string;
   idTurma?: string;
   matricula?: string;
-
-  // Compatibilidade temporária com o front-end antigo.
   idMatricula?: string;
 };
 
@@ -26,7 +24,7 @@ type Resultado = {
   erro?: string;
 };
 
-// Erro retornado pelo PostgreSQL
+// Erros do NpgSQ
 type PostgresError = Error & {
   code?: string;
   constraint?: string;
@@ -37,7 +35,7 @@ type PostgresError = Error & {
 // 2. CONSTANTES
 // ==========================================
 
-// Aceita códigos alfanuméricos de 1 a 8 caracteres (ex: N9AD154Z)
+// REGEX
 const TURMA_CODE_REGEX = /^[a-z0-9]{1,8}$/i;
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -86,12 +84,12 @@ function identificarErroBanco(e: unknown): Resultado {
     return erro("Já existe um registro com esses dados.");
   }
 
-  // Violação de FOREIGN KEY
+  // CHAVE ESTRANG.
   if (pgError.code === "23503") {
     return erro("A turma informada não foi encontrada.");
   }
 
-  // Violação de NOT NULL
+  // NOT NULL
   if (pgError.code === "23502") {
     return erro("Preencha todos os campos obrigatórios.");
   }
@@ -105,9 +103,6 @@ function identificarErroBanco(e: unknown): Resultado {
 
 export async function registrarUsuario(d: Dados): Promise<Resultado> {
   try {
-    // --------------------------------------
-    // VALIDAÇÕES INICIAIS
-    // --------------------------------------
 
     if (!d || typeof d !== "object") {
       return erro("Dados inválidos.");
@@ -145,7 +140,6 @@ export async function registrarUsuario(d: Dados): Promise<Resultado> {
       return erro("A senha precisa ter pelo menos 8 caracteres.");
     }
 
-    // bcrypt possui limite de 72 bytes
     if (Buffer.byteLength(senha, "utf8") > 72) {
       return erro("A senha ultrapassa o limite permitido.");
     }
@@ -200,7 +194,7 @@ export async function registrarUsuario(d: Dados): Promise<Resultado> {
       return erro("A matrícula deve ter no máximo 50 caracteres.");
     }
 
-    // Verifica se a turma existe
+    // Turma existe?
     const turma = await pool.query<{ id: string }>(
       `
         SELECT id
@@ -215,7 +209,7 @@ export async function registrarUsuario(d: Dados): Promise<Resultado> {
       return erro("ID da turma inválido.");
     }
 
-    // Insere o aluno
+    // Inserindo alunos db
     await pool.query(
       `
         INSERT INTO alunos
