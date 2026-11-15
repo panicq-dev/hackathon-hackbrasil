@@ -14,6 +14,11 @@ export interface MapeamentoErro {
   erroProvavel: string;     
 }
 
+export interface Avaliacoes{
+    id: string;
+    questoes: EstruturaQuestao[];
+}
+
 export interface EstruturaQuestao {
   enunciado: string;
   camposValidacao: CampoValidacao[];
@@ -21,5 +26,5 @@ export interface EstruturaQuestao {
 }
 // Avaliação
 export interface AvaliacaoProps {
-  questao?: EstruturaQuestao | null;
+  avaliacao?: Avaliacoes | null;
 }
