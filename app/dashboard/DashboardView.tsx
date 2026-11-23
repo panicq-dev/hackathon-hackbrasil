@@ -8,28 +8,23 @@ import {
   PlusCircle,
   Copy,
   Check,
-  GraduationCap,
   ClipboardCheck,
   LayoutDashboard,
   Library,
   LogOut,
   ShieldCheck,
+  GraduationCap,
   School,
   ArrowRight,
   Clock,
-  Mail,
-  Hash,
-  Sparkles,
 } from 'lucide-react';
 import { UsuarioSessao } from '@/app/src/lib/session';
 import { logoutUsuario } from '@/app/actions/login';
 import {
   listarTurmasProfessor,
   criarTurma,
-  obterAlunosDaTurma,
   obterTurmaDoAluno,
   TurmaItem,
-  AlunoTurma,
 } from '@/app/actions/turmas';
 
 const BOLINHA =
@@ -60,11 +55,6 @@ export default function DashboardView({ usuario }: { usuario: UsuarioSessao }) {
 
   // Cópia de código
   const [copiadoId, setCopiadoId] = useState<string | null>(null);
-
-  // Alunos da turma selecionada
-  const [turmaExpandida, setTurmaExpandida] = useState<string | null>(null);
-  const [alunosTurma, setAlunosTurma] = useState<Record<string, AlunoTurma[]>>({});
-  const [carregandoAlunos, setCarregandoAlunos] = useState(false);
 
   const isProfessor = usuario.perfil === 'professor';
 
@@ -105,7 +95,7 @@ export default function DashboardView({ usuario }: { usuario: UsuarioSessao }) {
         setErro(res.erro);
       } else if (res.turma) {
         setTurmas((prev) => [res.turma!, ...prev]);
-        setMensagemSucesso(`Turma "${res.turma.nome}" criada com o código ${res.turma.id}!`);
+        setMensagemSucesso(`Turma "${res.turma.nome}" criada com sucesso.`);
         setNomeTurma('');
       }
     } catch {
@@ -118,29 +108,7 @@ export default function DashboardView({ usuario }: { usuario: UsuarioSessao }) {
   function handleCopiarCodigo(codigo: string) {
     navigator.clipboard.writeText(codigo);
     setCopiadoId(codigo);
-    setTimeout(() => setCopiadoId(null), 2500);
-  }
-
-  async function toggleVerAlunos(turmaId: string) {
-    if (turmaExpandida === turmaId) {
-      setTurmaExpandida(null);
-      return;
-    }
-
-    setTurmaExpandida(turmaId);
-    if (!alunosTurma[turmaId]) {
-      setCarregandoAlunos(true);
-      try {
-        const res = await obterAlunosDaTurma(turmaId);
-        if (res.alunos) {
-          setAlunosTurma((prev) => ({ ...prev, [turmaId]: res.alunos! }));
-        }
-      } catch (err) {
-        console.error('Erro ao carregar alunos:', err);
-      } finally {
-        setCarregandoAlunos(false);
-      }
-    }
+    setTimeout(() => setCopiadoId(null), 2000);
   }
 
   async function handleLogout() {
@@ -213,7 +181,7 @@ export default function DashboardView({ usuario }: { usuario: UsuarioSessao }) {
             className="flex cursor-pointer items-center gap-1 rounded-full border-2 border-[#0A2E4A] bg-[#FFE3E3] px-3.5 py-1.5 font-['Baloo_2'] text-xs font-extrabold text-[#8A1F1F] shadow-[0_2px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5"
           >
             <LogOut className="h-3.5 w-3.5" />
-            <span>Sair da conta</span>
+            <span>Sair</span>
           </button>
         </div>
       </div>
@@ -253,7 +221,7 @@ export default function DashboardView({ usuario }: { usuario: UsuarioSessao }) {
         {/* Cabeçalho */}
         <header className="mb-8">
           <h1 className="font-['Bricolage_Grotesque'] text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl">
-            {isProfessor ? 'Dashboard: Gestão de Turmas' : 'Meu Painel do Aluno'}
+            {isProfessor ? 'Minhas Turmas' : 'Minha Turma'}
           </h1>
           <svg aria-hidden viewBox="0 0 220 14" className="mt-1 h-3 w-44 text-[#FFC53D]" fill="none">
             <path
@@ -265,75 +233,47 @@ export default function DashboardView({ usuario }: { usuario: UsuarioSessao }) {
           </svg>
           <p className="mt-3 max-w-xl text-base font-semibold text-[#4A6B85]">
             {isProfessor
-              ? 'Crie novas turmas para sua escola, obtenha os códigos de acesso para cadastro dos alunos e acompanhe os matriculados.'
-              : 'Consulte os dados da sua turma atual e acerte suas pendências avaliativas.'}
+              ? 'Gerencie as turmas e passe o código de acesso para os alunos se cadastrarem.'
+              : 'Informações da sua turma.'}
           </p>
         </header>
 
         {isProfessor ? (
           <div className="space-y-8">
-            {/* Métricas rápidas */}
+            {/* Métricas simples */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div className="rounded-[28px] border-[3px] border-[#0A2E4A] bg-white p-5 shadow-[0_5px_0_0_#0A2E4A]">
-                <div className="flex items-center justify-between">
-                  <span className="font-['Baloo_2'] text-sm font-bold text-[#4A6B85]">Turmas Ativas</span>
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#0A2E4A] bg-[#FFC53D]">
-                    <School className="h-4 w-4" />
-                  </span>
-                </div>
-                <p className="mt-2 font-['Bricolage_Grotesque'] text-3xl font-extrabold">
-                  {turmas.length}
-                </p>
+              <div className="rounded-[24px] border-[3px] border-[#0A2E4A] bg-white p-5 shadow-[0_4px_0_0_#0A2E4A]">
+                <span className="text-xs font-bold text-[#4A6B85]">Total de turmas</span>
+                <p className="mt-1 font-['Bricolage_Grotesque'] text-3xl font-extrabold">{turmas.length}</p>
               </div>
 
-              <div className="rounded-[28px] border-[3px] border-[#0A2E4A] bg-white p-5 shadow-[0_5px_0_0_#0A2E4A]">
-                <div className="flex items-center justify-between">
-                  <span className="font-['Baloo_2'] text-sm font-bold text-[#4A6B85]">Alunos Vinculados</span>
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#0A2E4A] bg-[#4ECDC4]">
-                    <Users className="h-4 w-4" />
-                  </span>
-                </div>
-                <p className="mt-2 font-['Bricolage_Grotesque'] text-3xl font-extrabold">
-                  {totalAlunosGeral}
-                </p>
+              <div className="rounded-[24px] border-[3px] border-[#0A2E4A] bg-white p-5 shadow-[0_4px_0_0_#0A2E4A]">
+                <span className="text-xs font-bold text-[#4A6B85]">Alunos matriculados</span>
+                <p className="mt-1 font-['Bricolage_Grotesque'] text-3xl font-extrabold">{totalAlunosGeral}</p>
               </div>
 
-              <div className="rounded-[28px] border-[3px] border-[#0A2E4A] bg-white p-5 shadow-[0_5px_0_0_#0A2E4A]">
-                <div className="flex items-center justify-between">
-                  <span className="font-['Baloo_2'] text-sm font-bold text-[#4A6B85]">Avaliações nas Turmas</span>
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#0A2E4A] bg-[#BFE3F7]">
-                    <ClipboardCheck className="h-4 w-4" />
-                  </span>
-                </div>
-                <p className="mt-2 font-['Bricolage_Grotesque'] text-3xl font-extrabold">
-                  {totalAvaliacoesGeral}
-                </p>
+              <div className="rounded-[24px] border-[3px] border-[#0A2E4A] bg-white p-5 shadow-[0_4px_0_0_#0A2E4A]">
+                <span className="text-xs font-bold text-[#4A6B85]">Avaliações criadas</span>
+                <p className="mt-1 font-['Bricolage_Grotesque'] text-3xl font-extrabold">{totalAvaliacoesGeral}</p>
               </div>
             </div>
 
             {/* Formulário de criação de turma */}
-            <div className="rounded-[36px] border-[3px] border-[#0A2E4A] bg-white p-6 shadow-[0_8px_0_0_#0A2E4A] sm:p-7">
-              <div className="flex items-center gap-2.5">
-                <span className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#0A2E4A] bg-[#FFC53D]">
-                  <PlusCircle className="h-5 w-5 text-[#0A2E4A]" />
-                </span>
-                <div>
-                  <h2 className="font-['Baloo_2'] text-2xl font-extrabold">Criar Nova Turma</h2>
-                  <p className="text-xs font-bold text-[#4A6B85]">
-                    O sistema irá gerar automaticamente um código exclusivo de 8 dígitos para os alunos entrarem.
-                  </p>
-                </div>
+            <div className="rounded-[32px] border-[3px] border-[#0A2E4A] bg-white p-6 shadow-[0_6px_0_0_#0A2E4A]">
+              <div className="flex items-center gap-2">
+                <PlusCircle className="h-5 w-5 text-[#0A2E4A]" />
+                <h2 className="font-['Baloo_2'] text-xl font-extrabold">Criar nova turma</h2>
               </div>
 
               {mensagemSucesso && (
-                <div className="mt-4 flex items-center gap-2 rounded-2xl border-2 border-[#0A2E4A] bg-[#D1F2D9] px-4 py-2.5 text-xs font-extrabold text-[#0F5132] shadow-[0_2px_0_0_#0A2E4A]">
+                <div className="mt-3 flex items-center gap-2 rounded-xl border-2 border-[#0A2E4A] bg-[#D1F2D9] px-4 py-2 text-xs font-bold text-[#0F5132]">
                   <Check className="h-4 w-4 shrink-0" />
                   <span>{mensagemSucesso}</span>
                 </div>
               )}
 
               {erro && (
-                <div className="mt-4 rounded-2xl border-2 border-[#0A2E4A] bg-[#FFE3E3] px-4 py-2.5 text-xs font-extrabold text-[#8A1F1F] shadow-[0_2px_0_0_#0A2E4A]">
+                <div className="mt-3 rounded-xl border-2 border-[#0A2E4A] bg-[#FFE3E3] px-4 py-2 text-xs font-bold text-[#8A1F1F]">
                   {erro}
                 </div>
               )}
@@ -343,22 +283,18 @@ export default function DashboardView({ usuario }: { usuario: UsuarioSessao }) {
                   type="text"
                   value={nomeTurma}
                   onChange={(e) => setNomeTurma(e.target.value)}
-                  placeholder="Nome da turma (Ex: 7º ano B, 8º ano A...)"
-                  className="flex-1 rounded-[18px] border-[3px] border-[#0A2E4A] bg-[#EBF5FF] px-4 py-3 text-xs font-semibold text-[#0A2E4A] shadow-[0_3px_0_0_#0A2E4A] placeholder:font-normal placeholder:text-[#5A7C99] focus:outline-none focus:ring-4 focus:ring-[#2496ED]/30"
+                  placeholder="Nome da turma (ex: 7 ano B)"
+                  className="flex-1 rounded-[16px] border-2 border-[#0A2E4A] bg-[#EBF5FF] px-4 py-2.5 text-xs font-semibold text-[#0A2E4A] placeholder:text-[#5A7C99] focus:outline-none"
                   required
                 />
 
                 <button
                   type="submit"
                   disabled={criandoTurma}
-                  className="flex cursor-pointer items-center justify-center gap-2 rounded-[18px] border-[3px] border-[#0A2E4A]
-                    bg-[linear-gradient(160deg,#5AA9E6_0%,#2496ED_45%,#1D63ED_100%)] px-6 py-3
-                    font-['Baloo_2'] text-base font-extrabold text-white
-                    shadow-[0_5px_0_0_#16457E] transition hover:brightness-105 active:translate-y-1 active:shadow-[0_1px_0_0_#16457E]
-                    disabled:opacity-60 sm:w-auto"
+                  className="flex cursor-pointer items-center justify-center gap-1.5 rounded-[16px] border-2 border-[#0A2E4A] bg-[#2496ED] px-5 py-2.5 font-['Baloo_2'] text-sm font-extrabold text-white shadow-[0_3px_0_0_#16457E] hover:brightness-105 active:translate-y-0.5 disabled:opacity-60"
                 >
                   <PlusCircle className="h-4 w-4" />
-                  {criandoTurma ? 'Criando...' : 'Criar Turma'}
+                  {criandoTurma ? 'Criando...' : 'Criar turma'}
                 </button>
               </form>
             </div>
@@ -366,198 +302,105 @@ export default function DashboardView({ usuario }: { usuario: UsuarioSessao }) {
             {/* Listagem de turmas */}
             <div>
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="font-['Baloo_2'] text-2xl font-extrabold">Minhas Turmas Cadastradas</h3>
-                <span className="rounded-full border-2 border-[#0A2E4A] bg-[#FFEFC2] px-3 py-1 font-['Baloo_2'] text-xs font-extrabold">
-                  {turmas.length} turmas
-                </span>
+                <h3 className="font-['Baloo_2'] text-xl font-extrabold">Turmas</h3>
+                <span className="text-xs font-bold text-[#4A6B85]">{turmas.length} registradas</span>
               </div>
 
               {carregando ? (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#0A2E4A] border-t-[#2496ED]" />
-                  <p className="mt-3 font-['Baloo_2'] text-base font-bold text-[#4A6B85]">
-                    Carregando turmas...
-                  </p>
+                <div className="flex justify-center py-12">
+                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#0A2E4A] border-t-[#2496ED]" />
                 </div>
               ) : turmas.length === 0 ? (
-                <div className="rounded-[36px] border-[3px] border-dashed border-[#0A2E4A]/30 bg-white/70 p-12 text-center">
-                  <School className="mx-auto mb-3 h-12 w-12 text-[#4A6B85]" />
-                  <h4 className="font-['Baloo_2'] text-xl font-extrabold">Nenhuma turma cadastrada</h4>
-                  <p className="mt-1 text-sm font-semibold text-[#4A6B85]">
-                    Crie sua primeira turma no formulário acima para receber alunos e aplicar provas.
-                  </p>
+                <div className="rounded-[28px] border-2 border-dashed border-[#0A2E4A]/30 bg-white/60 p-8 text-center text-sm font-bold text-[#4A6B85]">
+                  Nenhuma turma criada ainda.
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                  {turmas.map((t) => {
-                    const expandido = turmaExpandida === t.id;
-                    const alunos = alunosTurma[t.id] ?? [];
-
-                    return (
-                      <div
-                        key={t.id}
-                        className="flex flex-col justify-between rounded-[32px] border-[3px] border-[#0A2E4A] bg-white p-6 shadow-[0_6px_0_0_#0A2E4A]"
-                      >
-                        <div>
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <h4 className="font-['Baloo_2'] text-2xl font-extrabold text-[#0A2E4A]">
-                                {t.nome}
-                              </h4>
-                              <p className="flex items-center gap-1 text-xs font-semibold text-[#4A6B85]">
-                                <Clock className="h-3.5 w-3.5" />
-                                Criada em {new Date(t.criadoEm).toLocaleDateString('pt-BR')}
-                              </p>
-                            </div>
-
-                            <span className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#0A2E4A] bg-[#4ECDC4]">
-                              <School className="h-5 w-5 text-[#0A2E4A]" />
-                            </span>
-                          </div>
-
-                          {/* Bloco de Código de Acesso */}
-                          <div className="mt-4 rounded-2xl border-2 border-[#0A2E4A] bg-[#F4FAFF] p-3.5">
-                            <span className="block text-[11px] font-extrabold uppercase tracking-wider text-[#14507F]">
-                              Código de Acesso dos Alunos:
-                            </span>
-
-                            <div className="mt-1.5 flex items-center justify-between gap-2">
-                              <span className="rounded-xl border-2 border-[#0A2E4A] bg-[#FFC53D] px-3.5 py-1 font-mono text-base font-extrabold tracking-widest text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A]">
-                                {t.id}
-                              </span>
-
-                              <button
-                                type="button"
-                                onClick={() => handleCopiarCodigo(t.id)}
-                                className="flex cursor-pointer items-center gap-1.5 rounded-xl border-2 border-[#0A2E4A] bg-white px-3 py-1.5 font-['Baloo_2'] text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A] transition hover:bg-[#FFEFC2] active:translate-y-0.5"
-                              >
-                                {copiadoId === t.id ? (
-                                  <>
-                                    <Check className="h-3.5 w-3.5 text-[#27AE60]" />
-                                    <span>Copiado!</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Copy className="h-3.5 w-3.5" />
-                                    <span>Copiar código</span>
-                                  </>
-                                )}
-                              </button>
-                            </div>
-
-                            <p className="mt-2 text-[11px] font-bold text-[#4A6B85]">
-                              Envie este código aos alunos para vinculá-los a esta turma na tela de cadastro.
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                  {turmas.map((t) => (
+                    <div
+                      key={t.id}
+                      className="flex flex-col justify-between rounded-[28px] border-[3px] border-[#0A2E4A] bg-white p-5 shadow-[0_5px_0_0_#0A2E4A]"
+                    >
+                      <div>
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h4 className="font-['Baloo_2'] text-xl font-extrabold text-[#0A2E4A]">
+                              {t.nome}
+                            </h4>
+                            <p className="text-xs text-[#4A6B85]">
+                              Criada em {new Date(t.criadoEm).toLocaleDateString('pt-BR')}
                             </p>
                           </div>
 
-                          {/* Métricas da turma */}
-                          <div className="mt-4 flex items-center gap-2">
-                            <span className="rounded-xl border border-[#0A2E4A]/30 bg-[#E8F5E9] px-3 py-1 text-xs font-extrabold text-[#1B5E20]">
-                              {t.totalAlunos} aluno(s) matriculado(s)
+                          <span className="rounded-full border border-[#0A2E4A]/30 bg-[#EBF5FF] px-2.5 py-0.5 text-xs font-bold text-[#14507F]">
+                            {t.totalAlunos} aluno(s)
+                          </span>
+                        </div>
+
+                        {/* Código de Acesso */}
+                        <div className="mt-4 rounded-xl border border-[#0A2E4A]/20 bg-[#F4FAFF] p-3">
+                          <span className="text-[11px] font-bold text-[#4A6B85]">Código da turma:</span>
+                          <div className="mt-1 flex items-center justify-between">
+                            <span className="font-mono text-base font-extrabold tracking-wider text-[#0A2E4A]">
+                              {t.id}
                             </span>
-                            <span className="rounded-xl border border-[#0A2E4A]/30 bg-[#EBF5FF] px-3 py-1 text-xs font-extrabold text-[#14507F]">
-                              {t.totalAvaliacoes} avaliação(ões)
-                            </span>
+
+                            <button
+                              type="button"
+                              onClick={() => handleCopiarCodigo(t.id)}
+                              className="flex cursor-pointer items-center gap-1 rounded-lg border border-[#0A2E4A] bg-white px-2.5 py-1 text-xs font-bold text-[#0A2E4A] shadow-[0_1px_0_0_#0A2E4A] hover:bg-gray-50 active:translate-y-0.5"
+                            >
+                              {copiadoId === t.id ? (
+                                <>
+                                  <Check className="h-3 w-3 text-green-600" />
+                                  <span>Copiado</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="h-3 w-3" />
+                                  <span>Copiar</span>
+                                </>
+                              )}
+                            </button>
                           </div>
                         </div>
-
-                        {/* Botão de ver alunos vinculados */}
-                        <div className="mt-5 border-t border-[#0A2E4A]/10 pt-4">
-                          <button
-                            type="button"
-                            onClick={() => toggleVerAlunos(t.id)}
-                            className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-[#0A2E4A] bg-[#EBF5FF] py-2 font-['Baloo_2'] text-xs font-extrabold text-[#14507F] shadow-[0_2px_0_0_#0A2E4A] transition hover:bg-[#BFE3F7] active:translate-y-0.5"
-                          >
-                            <Users className="h-4 w-4" />
-                            <span>
-                              {expandido ? 'Ocultar alunos vinculados' : `Ver alunos (${t.totalAlunos})`}
-                            </span>
-                          </button>
-
-                          {/* Lista de alunos expandida */}
-                          {expandido && (
-                            <div className="mt-3 max-h-56 overflow-y-auto rounded-2xl border-2 border-[#0A2E4A]/20 bg-[#F9FBFC] p-3">
-                              {carregandoAlunos && !alunosTurma[t.id] ? (
-                                <p className="text-center text-xs font-bold text-[#4A6B85]">
-                                  Carregando alunos...
-                                </p>
-                              ) : alunos.length === 0 ? (
-                                <p className="text-center text-xs font-bold text-[#4A6B85]">
-                                  Nenhum aluno cadastrado nesta turma ainda.
-                                </p>
-                              ) : (
-                                <div className="space-y-2">
-                                  {alunos.map((al) => (
-                                    <div
-                                      key={al.id}
-                                      className="flex items-center justify-between rounded-xl border border-[#0A2E4A]/15 bg-white p-2.5 text-xs"
-                                    >
-                                      <div>
-                                        <p className="font-extrabold text-[#0A2E4A]">{al.nome}</p>
-                                        <p className="text-[11px] text-[#4A6B85]">{al.email}</p>
-                                      </div>
-                                      <span className="rounded-md border border-[#0A2E4A]/20 bg-[#EBF5FF] px-2 py-0.5 font-mono text-[11px] font-bold text-[#14507F]">
-                                        RA: {al.matricula}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
                       </div>
-                    );
-                  })}
+
+                      {/* Link para a tela de alunos */}
+                      <div className="mt-4 border-t border-gray-100 pt-3">
+                        <Link
+                          href={`/dashboard/turmas/${t.id}`}
+                          className="flex w-full items-center justify-center gap-1.5 rounded-xl border-2 border-[#0A2E4A] bg-[#FFC53D] py-2 text-center font-['Baloo_2'] text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A] hover:brightness-105 active:translate-y-0.5"
+                        >
+                          <Users className="h-4 w-4" />
+                          <span>Ver alunos da turma ({t.totalAlunos})</span>
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
           </div>
         ) : (
-          /* Painel do Aluno */
-          <div className="rounded-[36px] border-[3px] border-[#0A2E4A] bg-white p-7 shadow-[0_8px_0_0_#0A2E4A]">
-            <div className="flex items-center gap-3">
-              <span className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-[#0A2E4A] bg-[#4ECDC4]">
-                <GraduationCap className="h-6 w-6 text-[#0A2E4A]" />
-              </span>
-              <div>
-                <h2 className="font-['Baloo_2'] text-2xl font-extrabold">Minha Turma Atual</h2>
-                <p className="text-xs font-bold text-[#4A6B85]">
-                  Você está matriculado e vinculado a esta turma.
-                </p>
-              </div>
+          /* Aluno */
+          <div className="rounded-[32px] border-[3px] border-[#0A2E4A] bg-white p-6 shadow-[0_6px_0_0_#0A2E4A]">
+            <h2 className="font-['Baloo_2'] text-xl font-extrabold">Minha Turma</h2>
+            <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <p className="text-sm">
+                <strong>Turma:</strong> {turmaAluno?.nome ?? usuario.turmaId}
+              </p>
+              <p className="text-sm mt-1">
+                <strong>Código:</strong> {usuario.turmaId}
+              </p>
             </div>
-
-            <div className="mt-6 rounded-2xl border-2 border-[#0A2E4A] bg-[#F4FAFF] p-5">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <span className="text-xs font-extrabold uppercase text-[#14507F]">Nome da Turma</span>
-                  <h3 className="font-['Baloo_2'] text-2xl font-extrabold text-[#0A2E4A]">
-                    {turmaAluno?.nome ?? 'Turma ' + (usuario.turmaId || '-')}
-                  </h3>
-                </div>
-
-                <div>
-                  <span className="text-xs font-extrabold uppercase text-[#14507F]">Código da Turma</span>
-                  <div className="mt-1">
-                    <span className="rounded-xl border-2 border-[#0A2E4A] bg-[#FFC53D] px-3.5 py-1.5 font-mono text-base font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A]">
-                      {usuario.turmaId}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-end">
+            <div className="mt-5">
               <Link
                 href="/"
-                className="flex cursor-pointer items-center gap-2 rounded-2xl border-[3px] border-[#0A2E4A]
-                  bg-[linear-gradient(160deg,#5AA9E6_0%,#2496ED_45%,#1D63ED_100%)] px-6 py-3
-                  font-['Baloo_2'] text-base font-extrabold text-white
-                  shadow-[0_5px_0_0_#16457E] transition hover:brightness-105 active:translate-y-1 active:shadow-[0_1px_0_0_#16457E]"
+                className="inline-flex items-center gap-1 rounded-xl border-2 border-[#0A2E4A] bg-[#2496ED] px-4 py-2 font-['Baloo_2'] text-xs font-extrabold text-white shadow-[0_2px_0_0_#16457E]"
               >
-                <span>Ir para Minhas Avaliações</span>
-                <ArrowRight className="h-4 w-4" />
+                <span>Ver avaliações</span>
+                <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
           </div>

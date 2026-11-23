@@ -15,9 +15,6 @@ export type TurmaItem = {
 export type AlunoTurma = {
   id: number;
   nome: string;
-  email: string;
-  matricula: string;
-  criadoEm: string;
 };
 
 export async function criarTurma(nome: string): Promise<{
@@ -122,6 +119,7 @@ export async function listarTurmasProfessor(): Promise<{
 export async function obterAlunosDaTurma(turmaId: string): Promise<{
   ok?: boolean;
   erro?: string;
+  turmaNome?: string;
   alunos?: AlunoTurma[];
 }> {
   try {
@@ -131,8 +129,8 @@ export async function obterAlunosDaTurma(turmaId: string): Promise<{
     if (!turmaId) return { erro: "Turma inválida." };
 
     // Valida que a turma pertence a esse professor
-    const turmaVal = await pool.query(
-      `SELECT id FROM turmas WHERE id = $1 AND professor_id = $2 LIMIT 1`,
+    const turmaVal = await pool.query<{ id: string; nome: string }>(
+      `SELECT id, nome FROM turmas WHERE id = $1 AND professor_id = $2 LIMIT 1`,
       [turmaId, professorId]
     );
 
@@ -143,11 +141,8 @@ export async function obterAlunosDaTurma(turmaId: string): Promise<{
     const res = await pool.query<{
       id: number;
       nome: string;
-      email: string;
-      matricula: string;
-      criado_em: string;
     }>(
-      `SELECT id, nome, email, matricula, criado_em
+      `SELECT id, nome
          FROM alunos
         WHERE turma_id = $1
         ORDER BY nome ASC`,
@@ -157,12 +152,9 @@ export async function obterAlunosDaTurma(turmaId: string): Promise<{
     const alunos: AlunoTurma[] = res.rows.map((r) => ({
       id: r.id,
       nome: r.nome,
-      email: r.email,
-      matricula: r.matricula,
-      criadoEm: new Date(r.criado_em).toISOString(),
     }));
 
-    return { ok: true, alunos };
+    return { ok: true, turmaNome: turmaVal.rows[0].nome, alunos };
   } catch (e: unknown) {
     const err = e as Error;
     console.error("Erro ao obter alunos da turma:", err);
