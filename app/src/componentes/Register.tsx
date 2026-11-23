@@ -1,7 +1,7 @@
 
 'use client';
 
-import { registrarUsuario } from "@/app/actionRegister";
+import { registrarUsuario } from "@/app/actions/register";
 import { Eye, EyeOff, Mail, Lock, User, Hash, UserPlus, Star } from "lucide-react";
 import { useState } from "react";
 import { Perfil } from "@/app/src/types/index";

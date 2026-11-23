@@ -2,19 +2,24 @@
 
 import bcrypt from "bcryptjs";
 import { pool } from "@/app/src/db";
+import {
+  criarSessao,
+  destruirSessao,
+  obterSessao,
+  Perfil,
+  UsuarioSessao,
+} from "@/app/src/lib/session";
 
-type Perfil = "professor" | "aluno";
-
-type DadosLogin = {
+export type DadosLogin = {
   perfil: Perfil;
   email: string;
   senha: string;
 };
 
-type ResultadoLogin = {
+export type ResultadoLogin = {
   ok?: boolean;
   erro?: string;
-  usuario?: { id: string; nome: string; email: string; perfil: Perfil };
+  usuario?: Omit<UsuarioSessao, "exp">;
 };
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -46,33 +51,138 @@ export async function loginUsuario(d: DadosLogin): Promise<ResultadoLogin> {
       return { erro: MSG_CREDENCIAIS };
     }
 
-    // Tabela vem de uma whitelist, nunca do input do usuário
-    const tabela = d.perfil === "professor" ? "professores" : "alunos";
+    if (d.perfil === "professor") {
+      const res = await pool.query<{
+        id: number;
+        nome: string;
+        email: string;
+        senha_hash: string;
+      }>(
+        `SELECT id, nome, email, senha_hash
+           FROM professores
+          WHERE lower(email) = $1
+          LIMIT 1`,
+        [email]
+      );
 
-    const res = await pool.query<{
-      id: string;
-      nome: string;
-      email: string;
-      senha_hash: string;
-    }>(
-      `SELECT id, nome, email, senha_hash
-         FROM ${tabela}
-        WHERE email = $1
-        LIMIT 1`,
-      [email]
-    );
+      const row = res.rows[0];
+      const senhaConfere = await bcrypt.compare(senha, row?.senha_hash ?? HASH_FALSO);
 
-    const row = res.rows[0];
-    const senhaConfere = await bcrypt.compare(senha, row?.senha_hash ?? HASH_FALSO);
+      if (!row || !senhaConfere) return { erro: MSG_CREDENCIAIS };
 
-    if (!row || !senhaConfere) return { erro: MSG_CREDENCIAIS };
+      const usuario = {
+        id: row.id,
+        nome: row.nome,
+        email: row.email,
+        perfil: "professor" as const,
+      };
 
-    return {
-      ok: true,
-      usuario: { id: row.id, nome: row.nome, email: row.email, perfil: d.perfil },
-    };
+      await criarSessao(usuario);
+      return { ok: true, usuario };
+    } else {
+      const res = await pool.query<{
+        id: number;
+        nome: string;
+        email: string;
+        matricula: string;
+        turma_id: string;
+        senha_hash: string;
+      }>(
+        `SELECT id, nome, email, matricula, turma_id, senha_hash
+           FROM alunos
+          WHERE lower(email) = $1
+          LIMIT 1`,
+        [email]
+      );
+
+      const row = res.rows[0];
+      const senhaConfere = await bcrypt.compare(senha, row?.senha_hash ?? HASH_FALSO);
+
+      if (!row || !senhaConfere) return { erro: MSG_CREDENCIAIS };
+
+      const usuario = {
+        id: row.id,
+        nome: row.nome,
+        email: row.email,
+        perfil: "aluno" as const,
+        turmaId: row.turma_id,
+        matricula: row.matricula,
+      };
+
+      await criarSessao(usuario);
+      return { ok: true, usuario };
+    }
   } catch (e) {
     console.error("Erro no login:", e);
     return { erro: "Não foi possível entrar. Tente novamente." };
   }
+}
+
+export async function simularSessao(perfil: Perfil): Promise<ResultadoLogin> {
+  try {
+    if (perfil === "professor") {
+      const res = await pool.query<{
+        id: number;
+        nome: string;
+        email: string;
+      }>(
+        `SELECT id, nome, email
+           FROM professores
+          ORDER BY id ASC
+          LIMIT 1`
+      );
+
+      const row = res.rows[0];
+      if (!row) return { erro: "Nenhum professor encontrado no banco de dados." };
+
+      const usuario = {
+        id: row.id,
+        nome: row.nome,
+        email: row.email,
+        perfil: "professor" as const,
+      };
+
+      await criarSessao(usuario);
+      return { ok: true, usuario };
+    } else {
+      const res = await pool.query<{
+        id: number;
+        nome: string;
+        email: string;
+        matricula: string;
+        turma_id: string;
+      }>(
+        `SELECT id, nome, email, matricula, turma_id
+           FROM alunos
+          ORDER BY id ASC
+          LIMIT 1`
+      );
+
+      const row = res.rows[0];
+      if (!row) return { erro: "Nenhum aluno encontrado no banco de dados." };
+
+      const usuario = {
+        id: row.id,
+        nome: row.nome,
+        email: row.email,
+        perfil: "aluno" as const,
+        turmaId: row.turma_id,
+        matricula: row.matricula,
+      };
+
+      await criarSessao(usuario);
+      return { ok: true, usuario };
+    }
+  } catch (e) {
+    console.error("Erro ao simular sessão:", e);
+    return { erro: "Erro ao iniciar simulação de sessão." };
+  }
+}
+
+export async function obterUsuarioAtual(): Promise<UsuarioSessao | null> {
+  return await obterSessao();
+}
+
+export async function logoutUsuario(): Promise<void> {
+  await destruirSessao();
 }

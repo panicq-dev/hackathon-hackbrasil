@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Eye,
   EyeOff,
@@ -8,8 +9,11 @@ import {
   Lock,
   Star,
   LogIn,
+  UserCheck,
+  GraduationCap,
 } from 'lucide-react';
 import { Perfil } from '@/app/src/types/index';
+import { loginUsuario, simularSessao } from '@/app/actions/login';
 
 const INK = '#0A2E4A';
 
@@ -43,30 +47,63 @@ const tabClass = (ativa: boolean) =>
       : "border-transparent bg-transparent text-[#4A6B85] hover:bg-[#FFC53D]/35"
   }`;
 
-export default function Login() {
+type LoginProps = {
+  onLoginSucesso?: () => void;
+};
+
+export default function Login({ onLoginSucesso }: LoginProps) {
+  const router = useRouter();
   const [perfil, setPerfil] = useState<Perfil>('aluno');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(false);
+  const [simulando, setSimulando] = useState<Perfil | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-
     setErro('');
     setCarregando(true);
 
-    // Simulação temporária de login
-    setTimeout(() => {
+    try {
+      const res = await loginUsuario({ perfil, email, senha });
+      if (res.erro) {
+        setErro(res.erro);
+      } else if (res.ok) {
+        if (onLoginSucesso) {
+          onLoginSucesso();
+        } else {
+          router.refresh();
+        }
+      }
+    } catch {
+      setErro('Erro inesperado ao realizar login.');
+    } finally {
       setCarregando(false);
+    }
+  }
 
-      console.log({
-        perfil,
-        email,
-        senha,
-      });
-    }, 800);
+  async function handleSimular(perfilEscolhido: Perfil) {
+    setErro('');
+    setSimulando(perfilEscolhido);
+
+    try {
+      const res = await simularSessao(perfilEscolhido);
+      if (res.erro) {
+        setErro(res.erro);
+      } else if (res.ok) {
+        if (onLoginSucesso) {
+          onLoginSucesso();
+        } else {
+          router.refresh();
+        }
+      }
+    } catch {
+      setErro('Erro ao simular perfil.');
+    } finally {
+      setSimulando(null);
+    }
   }
 
   return (
@@ -110,8 +147,35 @@ export default function Login() {
             : 'Entre para continuar seus estudos e atividades.'}
         </p>
 
-        <div className="space-y-5 text-sm">
+        {/* Bloco de Simulação Rápida */}
+        <div className="mb-6 rounded-[22px] border-2 border-dashed border-[#0A2E4A]/30 bg-[#F0F8FF] p-4 text-center">
+          <p className="mb-2 text-xs font-extrabold uppercase tracking-wider text-[#14507F]">
+            Ambiente de Simulação de Sessões
+          </p>
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+            <button
+              type="button"
+              disabled={simulando !== null}
+              onClick={() => handleSimular('aluno')}
+              className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-[#0A2E4A] bg-[#4ECDC4] px-3 py-2.5 font-['Baloo_2'] text-xs font-extrabold text-[#0A2E4A] shadow-[0_3px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5 disabled:opacity-60"
+            >
+              <GraduationCap className="h-4 w-4" />
+              {simulando === 'aluno' ? 'Entrando...' : 'Simular Aluno (Mariano)'}
+            </button>
 
+            <button
+              type="button"
+              disabled={simulando !== null}
+              onClick={() => handleSimular('professor')}
+              className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-[#0A2E4A] bg-[#FFC53D] px-3 py-2.5 font-['Baloo_2'] text-xs font-extrabold text-[#0A2E4A] shadow-[0_3px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5 disabled:opacity-60"
+            >
+              <UserCheck className="h-4 w-4" />
+              {simulando === 'professor' ? 'Entrando...' : 'Simular Professor (Ricardão)'}
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-5 text-sm">
           {/* Perfil */}
           <div
             role="tablist"
@@ -195,14 +259,13 @@ export default function Login() {
                 type="button"
                 onClick={() => setMostrarSenha((v) => !v)}
                 className={eyeBtn}
-                aria-label={
-                  mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'
-                }
+                aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
               >
-                {mostrarSenha
-                  ? <EyeOff className="h-4 w-4" color={INK} />
-                  : <Eye className="h-4 w-4" color={INK} />
-                }
+                {mostrarSenha ? (
+                  <EyeOff className="h-4 w-4" color={INK} />
+                ) : (
+                  <Eye className="h-4 w-4" color={INK} />
+                )}
               </button>
             </div>
           </div>
@@ -218,7 +281,7 @@ export default function Login() {
           )}
 
           {/* Botão de login */}
-          <div className="pt-4">
+          <div className="pt-2">
             <button
               type="submit"
               disabled={carregando}
@@ -230,7 +293,6 @@ export default function Login() {
                 disabled:cursor-not-allowed disabled:opacity-70"
             >
               <LogIn className="h-5 w-5" />
-
               {carregando ? 'Entrando...' : 'Entrar na conta'}
             </button>
           </div>
@@ -238,9 +300,7 @@ export default function Login() {
           {/* Cadastro */}
           <p className="flex items-center justify-center gap-1.5 pt-1 text-center text-xs font-extrabold text-[#4A6B85]">
             <Star className="h-3.5 w-3.5 fill-[#FFC53D] text-[#FFC53D]" />
-
             Ainda não tem conta?{' '}
-
             <a
               href="/register"
               className="font-black text-[#1D63ED] underline underline-offset-[3px] hover:text-[#0A2E4A]"
@@ -248,7 +308,6 @@ export default function Login() {
               Cadastre-se
             </a>
           </p>
-
         </div>
       </form>
     </div>
