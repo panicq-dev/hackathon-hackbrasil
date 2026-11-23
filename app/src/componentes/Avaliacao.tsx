@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Send, CheckCircle2, AlertCircle, Info, Sparkles } from 'lucide-react';
+import { Send, CheckCircle2, AlertCircle, Info, Sparkles, Share2, Check, Globe } from 'lucide-react';
 import { Avaliacoes, EstruturaQuestao } from '@/app/src/types/index';
 import { salvarRespostaAluno } from '@/app/actions/avaliacoes';
+import { publicarQuestaoComunidade } from '@/app/actions/questoes';
 
 export type AvaliacaoCompleta = Avaliacoes & {
   respondidaPorMim?: boolean;
@@ -29,6 +30,11 @@ export default function Avaliacao({
     avaliacao?.respondidaPorMim ? 'Você já enviou suas respostas para esta avaliação.' : ''
   );
   const [erro, setErro] = useState('');
+  
+  // Rastreia questões publicadas na comunidade localmente
+  const [publicadas, setPublicadas] = useState<Record<number, boolean>>({});
+  const [publicandoIndice, setPublicandoIndice] = useState<number | null>(null);
+  const [publicandoTodas, setPublicandoTodas] = useState(false);
 
   if (!avaliacao || !avaliacao.questoes?.length) {
     return (
@@ -43,6 +49,47 @@ export default function Avaliacao({
       ...prev,
       [campoId]: valor,
     }));
+  }
+
+  async function handlePublicarQuestao(index: number, questao: EstruturaQuestao) {
+    setPublicandoIndice(index);
+    setErro('');
+    try {
+      const res = await publicarQuestaoComunidade(questao, 'Geral');
+      if (res.sucesso) {
+        setPublicadas((prev) => ({ ...prev, [index]: true }));
+        setMensagemSucesso(`Questão #${index + 1} publicada na comunidade com sucesso!`);
+      } else {
+        setErro(res.erro || 'Falha ao publicar questão.');
+      }
+    } catch {
+      setErro('Erro ao publicar questão.');
+    } finally {
+      setPublicandoIndice(null);
+    }
+  }
+
+  async function handlePublicarTodas() {
+    if (!avaliacao?.questoes) return;
+    setPublicandoTodas(true);
+    setErro('');
+    try {
+      let count = 0;
+      for (let i = 0; i < avaliacao.questoes.length; i++) {
+        if (!publicadas[i] && !avaliacao.questoes[i].publicadaNaComunidade) {
+          const res = await publicarQuestaoComunidade(avaliacao.questoes[i], 'Geral');
+          if (res.sucesso) {
+            count++;
+            setPublicadas((prev) => ({ ...prev, [i]: true }));
+          }
+        }
+      }
+      setMensagemSucesso(`${count} questão(ões) publicada(s) na comunidade com sucesso!`);
+    } catch {
+      setErro('Erro ao publicar questões em lote.');
+    } finally {
+      setPublicandoTodas(false);
+    }
   }
 
   async function handleEnviar(e: React.FormEvent) {
@@ -86,11 +133,23 @@ export default function Avaliacao({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {isProfessor ? (
-            <span className="rounded-xl border-2 border-[#0A2E4A] bg-[#FFEFC2] px-3 py-1 font-['Baloo_2'] text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A]">
-              Modo Professor
-            </span>
+            <>
+              <button
+                type="button"
+                onClick={handlePublicarTodas}
+                disabled={publicandoTodas}
+                className="flex cursor-pointer items-center gap-1.5 rounded-full border-2 border-[#0A2E4A] bg-[#FFC53D] px-3.5 py-1.5 font-['Baloo_2'] text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5 disabled:opacity-60"
+              >
+                <Globe className="h-3.5 w-3.5 text-[#0A2E4A]" />
+                <span>{publicandoTodas ? 'Publicando todas...' : 'Publicar todas na Comunidade'}</span>
+              </button>
+
+              <span className="rounded-xl border-2 border-[#0A2E4A] bg-[#FFEFC2] px-3 py-1 font-['Baloo_2'] text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A]">
+                Modo Professor
+              </span>
+            </>
           ) : (
             <span className="rounded-xl border-2 border-[#0A2E4A] bg-[#4ECDC4] px-3 py-1 font-['Baloo_2'] text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A]">
               Modo Aluno
@@ -123,14 +182,39 @@ export default function Avaliacao({
           errosMap.set(m.id, m.erroProvavel);
         });
 
+        const jaPublicada = publicadas[index] || questao.publicadaNaComunidade || Boolean(questao.bancoId);
+
         return (
           <div
             key={index}
             className="rounded-[22px] border-[3px] border-[#0A2E4A] bg-[#F4FAFF] p-5 shadow-[0_4px_0_0_#0A2E4A]"
           >
-            <h3 className="mb-3 font-['Baloo_2'] text-base font-extrabold leading-snug text-[#14507F]">
-              {index + 1}. {questao.enunciado}
-            </h3>
+            <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+              <h3 className="font-['Baloo_2'] text-base font-extrabold leading-snug text-[#14507F] flex-1">
+                {index + 1}. {questao.enunciado}
+              </h3>
+
+              {isProfessor && (
+                <div className="shrink-0">
+                  {jaPublicada ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-[#0A2E4A] bg-[#D1F2D9] px-3 py-1 font-['Baloo_2'] text-xs font-extrabold text-[#0F5132] shadow-[0_2px_0_0_#0A2E4A]">
+                      <Check className="h-3.5 w-3.5" />
+                      Publicada na Comunidade
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={publicandoIndice === index}
+                      onClick={() => handlePublicarQuestao(index, questao)}
+                      className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border-2 border-[#0A2E4A] bg-[#FFC53D] px-3 py-1 font-['Baloo_2'] text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5 disabled:opacity-60"
+                    >
+                      <Share2 className="h-3.5 w-3.5" />
+                      <span>{publicandoIndice === index ? 'Publicando...' : 'Publicar na Comunidade'}</span>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
 
             <div className="space-y-3">
               {questao.camposValidacao.map((campo) => {

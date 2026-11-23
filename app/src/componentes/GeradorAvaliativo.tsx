@@ -5,11 +5,15 @@ import {
   Link as LinkIcon,
   Upload,
   Sparkles,
-  Star
+  Star,
+  Users,
+  Share2,
+  CheckCircle2,
+  Coins
 } from "lucide-react";
 
 import { useState, useEffect } from "react";
-import { gerarAvaliacao } from "@/app/actions/prompt";
+import { gerarAvaliacao, GerarAvaliacaoResultado } from "@/app/actions/prompt";
 import { listarTurmasProfessor, TurmaItem } from "@/app/actions/turmas";
 import { Avaliacoes } from "@/app/src/types/index";
 
@@ -23,7 +27,11 @@ export default function GeradorAvaliativo({ onAvaliacaoGerada }: GeradorAvaliati
   const [quantidadeQuestoes, setQuantidadeQuestoes] = useState(10);
   const [turmas, setTurmas] = useState<TurmaItem[]>([]);
   const [turmaSelecionada, setTurmaSelecionada] = useState<string>('');
+  const [usarBancoComunidade, setUsarBancoComunidade] = useState(true);
+  const [publicarNovasNaComunidade, setPublicarNovasNaComunidade] = useState(false);
+  const [materiaTag, setMateriaTag] = useState('Matemática');
   const [carregando, setCarregando] = useState(false);
+  const [feedbackEconomia, setFeedbackEconomia] = useState<string | null>(null);
 
   useEffect(() => {
     async function carregarTurmas() {
@@ -43,16 +51,27 @@ export default function GeradorAvaliativo({ onAvaliacaoGerada }: GeradorAvaliati
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setCarregando(true);
+    setFeedbackEconomia(null);
 
     try {
       const resposta = await gerarAvaliacao(
         conteudoPrincipal,
         conteudoDetalhado,
         quantidadeQuestoes,
-        turmaSelecionada || undefined
+        turmaSelecionada || undefined,
+        {
+          usarBancoComunidade,
+          publicarNovasQuestoes: publicarNovasNaComunidade,
+          materiaTag,
+        }
       );
 
       if (resposta) {
+        if (resposta.reaproveitadasDoBanco && resposta.reaproveitadasDoBanco > 0) {
+          setFeedbackEconomia(
+            `✨ ${resposta.reaproveitadasDoBanco} questão(ões) consumidas do Banco da Comunidade! Economia estimada de ${resposta.tokensEconomizadosPercentual}% de tokens.`
+          );
+        }
         onAvaliacaoGerada(resposta);
         setConteudoPrincipal('');
         setConteudoDetalhado('');
@@ -86,6 +105,13 @@ export default function GeradorAvaliativo({ onAvaliacaoGerada }: GeradorAvaliati
           strokeLinecap="round"
         />
       </svg>
+
+      {feedbackEconomia && (
+        <div className="mb-4 flex items-center gap-2 rounded-[20px] border-2 border-[#0A2E4A] bg-[#D1F2D9] p-3 text-xs font-extrabold text-[#0F5132] shadow-[0_3px_0_0_#0A2E4A]">
+          <Coins className="h-4 w-4 shrink-0 text-[#0F5132]" />
+          <span>{feedbackEconomia}</span>
+        </div>
+      )}
 
       <div className="mt-4 space-y-4 text-sm">
         {/* Turma e questões */}
@@ -138,19 +164,86 @@ export default function GeradorAvaliativo({ onAvaliacaoGerada }: GeradorAvaliati
           </div>
         </div>
 
-        {/* Conteúdos */}
-        <div className="space-y-1">
-          <label className="font-['Baloo_2'] text-sm font-bold text-[#14507F]">
-            Quais conteúdos?
+        {/* Conteúdos e Matéria */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="space-y-1 sm:col-span-2">
+            <label className="font-['Baloo_2'] text-sm font-bold text-[#14507F]">
+              Quais conteúdos?
+            </label>
+            <input
+              type="text"
+              value={conteudoPrincipal}
+              onChange={(e) => setConteudoPrincipal(e.target.value)}
+              placeholder="Ex: Equação do Segundo Grau, Bhaskara..."
+              className="w-full rounded-[18px] border-[3px] border-[#0A2E4A] bg-[#EBF5FF] px-3.5 py-2.5 text-xs font-semibold text-[#0A2E4A] shadow-[0_3px_0_0_#0A2E4A] placeholder:font-normal placeholder:text-[#5A7C99] focus:outline-none"
+              required
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="font-['Baloo_2'] text-sm font-bold text-[#14507F]">
+              Matéria / Tag
+            </label>
+            <div className="relative">
+              <select
+                value={materiaTag}
+                onChange={(e) => setMateriaTag(e.target.value)}
+                className="w-full appearance-none rounded-[18px] border-[3px] border-[#0A2E4A] bg-[#EBF5FF] px-3 py-2.5 pr-10 text-xs font-semibold text-[#0A2E4A] shadow-[0_3px_0_0_#0A2E4A] focus:outline-none"
+              >
+                <option value="Matemática">Matemática</option>
+                <option value="Português">Português</option>
+                <option value="Ciências">Ciências</option>
+                <option value="História">História</option>
+                <option value="Física">Física</option>
+                <option value="Geral">Geral</option>
+              </select>
+              <span className="pointer-events-none absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[#0A2E4A] bg-[#FFC53D]">
+                <ChevronDown className="h-3.5 w-3.5 text-[#0A2E4A]" />
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Integração com a Comunidade (Redução de Tokens) */}
+        <div className="rounded-[22px] border-2 border-[#0A2E4A] bg-[#F6FBFF] p-3.5 shadow-[0_3px_0_0_#0A2E4A] space-y-2.5">
+          <label className="flex items-center gap-2.5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={usarBancoComunidade}
+              onChange={(e) => setUsarBancoComunidade(e.target.checked)}
+              className="h-4 w-4 rounded border-2 border-[#0A2E4A] text-[#2496ED] focus:ring-0 accent-[#2496ED]"
+            />
+            <div className="text-xs">
+              <span className="font-['Baloo_2'] font-extrabold text-[#0A2E4A] flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5 text-[#2496ED]" />
+                Reaproveitar questões da Comunidade
+                <span className="rounded-full bg-[#D1F2D9] px-2 py-0.5 text-[10px] font-extrabold text-[#0F5132] border border-[#0A2E4A]/30">
+                  Economiza Tokens IA
+                </span>
+              </span>
+              <p className="text-[11px] text-[#4A6B85] font-semibold mt-0.5">
+                Se outros professores já publicaram questões com boa avaliação sobre o tema, consome primeiro do banco e gera pela IA apenas o restante!
+              </p>
+            </div>
           </label>
-          <input
-            type="text"
-            value={conteudoPrincipal}
-            onChange={(e) => setConteudoPrincipal(e.target.value)}
-            placeholder="Ex: Equação do Segundo Grau..."
-            className="w-full rounded-[18px] border-[3px] border-[#0A2E4A] bg-[#EBF5FF] px-3.5 py-2.5 text-xs font-semibold text-[#0A2E4A] shadow-[0_3px_0_0_#0A2E4A] placeholder:font-normal placeholder:text-[#5A7C99] focus:outline-none"
-            required
-          />
+
+          <label className="flex items-center gap-2.5 cursor-pointer pt-1 border-t border-[#0A2E4A]/10">
+            <input
+              type="checkbox"
+              checked={publicarNovasNaComunidade}
+              onChange={(e) => setPublicarNovasNaComunidade(e.target.checked)}
+              className="h-4 w-4 rounded border-2 border-[#0A2E4A] text-[#2496ED] focus:ring-0 accent-[#2496ED]"
+            />
+            <div className="text-xs">
+              <span className="font-['Baloo_2'] font-bold text-[#0A2E4A] flex items-center gap-1.5">
+                <Share2 className="h-3.5 w-3.5 text-[#FFC53D]" />
+                Publicar novas questões geradas na Comunidade
+              </span>
+              <p className="text-[11px] text-[#4A6B85] font-semibold mt-0.5">
+                Compartilha as questões com outros professores para que possam votar e reutilizar.
+              </p>
+            </div>
+          </label>
         </div>
 
         {/* Descrição detalhada */}
@@ -165,27 +258,9 @@ export default function GeradorAvaliativo({ onAvaliacaoGerada }: GeradorAvaliati
             rows={2}
             value={conteudoDetalhado}
             onChange={(e) => setConteudoDetalhado(e.target.value)}
-            placeholder="Digite detalhes adicionais..."
+            placeholder="Digite detalhes adicionais, estilo de questão, contexto..."
             className="w-full resize-none rounded-[18px] border-[3px] border-[#0A2E4A] bg-[#EBF5FF] px-3.5 py-2.5 text-xs font-semibold text-[#0A2E4A] shadow-[0_3px_0_0_#0A2E4A] placeholder:font-normal placeholder:text-[#5A7C99] focus:outline-none"
           />
-        </div>
-
-        {/* Anexos */}
-        <div className="flex items-center justify-between pt-1">
-          <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#0A2E4A] bg-[#2496ED]">
-              <LinkIcon className="h-3 w-3 text-white" />
-            </span>
-            <span className="font-['Baloo_2'] text-sm font-bold text-[#14507F]">
-              Referências
-            </span>
-          </div>
-
-          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-[14px] border-2 border-dashed border-[#0A2E4A] bg-[#FFC53D]/70 px-3 py-1.5 text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A] hover:bg-[#FFC53D]">
-            <Upload className="h-3.5 w-3.5" />
-            <span>Anexar</span>
-            <input type="file" className="hidden" multiple />
-          </label>
         </div>
 
         {/* Botão */}
@@ -195,12 +270,12 @@ export default function GeradorAvaliativo({ onAvaliacaoGerada }: GeradorAvaliati
           className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-[18px] border-[3px] border-[#0A2E4A] bg-gradient-to-br from-[#5AA9E6] via-[#2496ED] to-[#1D63ED] px-4 py-3 font-['Baloo_2'] text-base font-extrabold text-white shadow-[0_5px_0_0_#16457E] transition hover:brightness-105 active:translate-y-1 active:shadow-[0_1px_0_0_#16457E] disabled:opacity-60"
         >
           <Sparkles className="h-4 w-4" />
-          {carregando ? 'Gerando...' : 'Gerar avaliação'}
+          {carregando ? 'Processando e gerando...' : 'Gerar avaliação'}
         </button>
 
         <p className="flex items-center justify-center gap-1 text-center text-[11px] font-extrabold text-[#4A6B85]">
           <Star className="h-3 w-3 fill-[#FFC53D] text-[#FFC53D]" />
-          você pode ajustar tudo depois!
+          você pode publicar ou ajustar tudo depois!
         </p>
       </div>
     </form>
