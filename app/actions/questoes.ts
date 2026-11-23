@@ -98,11 +98,25 @@ export async function despublicarQuestaoComunidade(
 }
 
 /**
+ * Helper para remover acentos em strings para buscas resilientes
+ */
+function removerAcentos(texto: string): string {
+  return texto
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+const TRANSLATE_ACENTOS_SQL = `'áàâãäéèêëíìîïóòôõöúùûüç', 'aaaaaeeeeiiiiooooouuuuc'`;
+
+/**
  * Lista as questões públicas da comunidade com contagem de likes/dislikes
+ * e garante que questões do próprio professor responsável sempre apareçam
  */
 export async function listarQuestoesComunidade(filtros?: {
   busca?: string;
   tag?: string;
+  apenasMinhas?: boolean;
   ordenarPor?: 'recentes' | 'populares';
 }): Promise<{ sucesso: boolean; questoes?: QuestaoComunidade[]; erro?: string }> {
   try {
@@ -115,34 +129,43 @@ export async function listarQuestoesComunidade(filtros?: {
         q.questao,
         q.criado_em as "criadoEm",
         q.professor_id as "professorId",
-        p.nome as "professorNome",
-        m.tag as "materiaTag",
+        COALESCE(p.nome, 'Professor') as "professorNome",
+        COALESCE(m.tag, 'Geral') as "materiaTag",
         COALESCE(COUNT(CASE WHEN r.tipo = 'like' THEN 1 END), 0)::int as "likesCount",
         COALESCE(COUNT(CASE WHEN r.tipo = 'dislike' THEN 1 END), 0)::int as "dislikesCount",
         MAX(CASE WHEN r.professor_id = $1 THEN r.tipo ELSE NULL END) as "meuVoto"
       FROM questoes q
-      JOIN professores p ON p.id = q.professor_id
-      JOIN materias_tag m ON m.id = q.materia_tag_id
+      LEFT JOIN professores p ON p.id = q.professor_id
+      LEFT JOIN materias_tag m ON m.id = q.materia_tag_id
       LEFT JOIN questoes_reacoes r ON r.questao_id = q.id
-      WHERE q.publica = true
+      WHERE (q.publica = true OR q.professor_id = $1)
     `;
 
     const params: (string | number)[] = [professorId];
     let paramIndex = 2;
 
+    // Filtro apenas minhas questões
+    if (filtros?.apenasMinhas) {
+      sql += ` AND q.professor_id = $1`;
+    }
+
+    // Filtro por tag de matéria (insensível a maiúsculas e acentos)
     if (filtros?.tag && filtros.tag !== 'todas') {
-      sql += ` AND LOWER(m.tag) = LOWER($${paramIndex})`;
+      sql += ` AND TRANSLATE(LOWER(TRIM(m.tag)), ${TRANSLATE_ACENTOS_SQL}) = TRANSLATE(LOWER(TRIM($${paramIndex})), ${TRANSLATE_ACENTOS_SQL})`;
       params.push(filtros.tag);
       paramIndex++;
     }
 
+    // Busca textual resiliente (enunciado, json da questão, matéria e nome do professor)
     if (filtros?.busca && filtros.busca.trim()) {
+      const termoNormalizado = `%${removerAcentos(filtros.busca.trim())}%`;
       sql += ` AND (
-        q.questao->>'enunciado' ILIKE $${paramIndex} 
-        OR m.tag ILIKE $${paramIndex}
-        OR p.nome ILIKE $${paramIndex}
+        TRANSLATE(LOWER(COALESCE(q.questao->>'enunciado', '')), ${TRANSLATE_ACENTOS_SQL}) ILIKE $${paramIndex} 
+        OR TRANSLATE(LOWER(COALESCE(q.questao::text, '')), ${TRANSLATE_ACENTOS_SQL}) ILIKE $${paramIndex}
+        OR TRANSLATE(LOWER(COALESCE(m.tag, '')), ${TRANSLATE_ACENTOS_SQL}) ILIKE $${paramIndex}
+        OR TRANSLATE(LOWER(COALESCE(p.nome, '')), ${TRANSLATE_ACENTOS_SQL}) ILIKE $${paramIndex}
       )`;
-      params.push(`%${filtros.busca.trim()}%`);
+      params.push(termoNormalizado);
       paramIndex++;
     }
 
@@ -261,17 +284,20 @@ export async function buscarQuestoesParaReaproveitar(
   try {
     if (!conteudosPrincipais || quantidadeDesejada <= 0) return [];
 
-    // Limpa palavras curtas para busca de palavras-chave
+    // Limpa palavras curtas para busca de palavras-chave e normaliza acentos
     const palavras = conteudosPrincipais
       .split(/\s+/)
-      .map((p) => p.replace(/[^a-zA-Z0-9À-ÿ]/g, '').trim())
+      .map((p) => removerAcentos(p.replace(/[^a-zA-Z0-9À-ÿ]/g, '').trim()))
       .filter((p) => p.length > 2);
 
     if (palavras.length === 0) return [];
 
-    // Monta cláusula OR com ILIKE
+    // Monta cláusula OR com ILIKE e TRANSLATE para ignorar acentos
     const condicoes = palavras
-      .map((_, i) => `(q.questao->>'enunciado' ILIKE $${i + 1} OR m.tag ILIKE $${i + 1})`)
+      .map((_, i) => `(
+        TRANSLATE(LOWER(COALESCE(q.questao->>'enunciado', '')), ${TRANSLATE_ACENTOS_SQL}) ILIKE $${i + 1}
+        OR TRANSLATE(LOWER(COALESCE(m.tag, '')), ${TRANSLATE_ACENTOS_SQL}) ILIKE $${i + 1}
+      )`)
       .join(' OR ');
 
     const params: (string | number)[] = palavras.map((p) => `%${p}%`);

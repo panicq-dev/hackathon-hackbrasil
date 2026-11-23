@@ -11,9 +11,16 @@ const ia = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
 });
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+// Inicialização sob demanda do Groq para evitar chamadas/instanciação desnecessárias na inicialização de módulos
+let groqClient: Groq | null = null;
+function obterClienteGroq(): Groq {
+  if (!groqClient) {
+    groqClient = new Groq({
+      apiKey: process.env.GROQ_API_KEY,
+    });
+  }
+  return groqClient;
+}
 
 const avaliacaoSchema: Schema = {
   type: Type.OBJECT,
@@ -110,7 +117,7 @@ Regras importantes:
 - Deve-se ter no mínimo 2 campos de validação por questão, mas podem ser mais.
 `;
 
-      const MODELOS_GEMINI = ['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.5-flash'];
+      const MODELOS_GEMINI = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
       let textoResposta: string | null = null;
 
       // Tenta cada modelo Gemini em cascata
@@ -139,7 +146,8 @@ Regras importantes:
           // Todos os Gemini falharam — tenta Groq como fallback final
           console.warn(`Todos os modelos Gemini falharam, usando Groq como fallback...`);
           try {
-            const respostaGroq = await groq.chat.completions.create({
+            const clienteGroq = obterClienteGroq();
+            const respostaGroq = await clienteGroq.chat.completions.create({
               model: 'llama-3.3-70b-versatile',
               messages: [
                 {

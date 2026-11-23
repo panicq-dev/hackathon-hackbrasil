@@ -58,6 +58,7 @@ export default function BancoQuestoesView({ usuario }: { usuario: UsuarioSessao 
   const [questoes, setQuestoes] = useState<QuestaoComunidade[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [tagSelecionada, setTagSelecionada] = useState<string>('todas');
+  const [apenasMinhas, setApenasMinhas] = useState<boolean>(false);
   const [termoBusca, setTermoBusca] = useState<string>('');
   const [ordenacao, setOrdenacao] = useState<'populares' | 'recentes'>('populares');
   const [carregando, setCarregando] = useState<boolean>(true);
@@ -86,6 +87,7 @@ export default function BancoQuestoesView({ usuario }: { usuario: UsuarioSessao 
         listarQuestoesComunidade({
           busca: termoBusca,
           tag: tagSelecionada,
+          apenasMinhas: isProfessor ? apenasMinhas : false,
           ordenarPor: ordenacao,
         }),
         listarTagsMaterias(),
@@ -100,7 +102,9 @@ export default function BancoQuestoesView({ usuario }: { usuario: UsuarioSessao 
       }
       if (resTurmas.turmas && resTurmas.turmas.length > 0) {
         setTurmas(resTurmas.turmas);
-        setTurmaDestino(resTurmas.turmas[0].id);
+        if (!turmaDestino) {
+          setTurmaDestino(resTurmas.turmas[0].id);
+        }
       }
     } catch {
       setErro('Erro ao carregar o banco de questões.');
@@ -111,7 +115,7 @@ export default function BancoQuestoesView({ usuario }: { usuario: UsuarioSessao 
 
   useEffect(() => {
     carregarDados();
-  }, [tagSelecionada, ordenacao]);
+  }, [tagSelecionada, ordenacao, apenasMinhas]);
 
   async function handleBuscar(e: React.FormEvent) {
     e.preventDefault();
@@ -243,7 +247,7 @@ export default function BancoQuestoesView({ usuario }: { usuario: UsuarioSessao 
   async function handleLogout() {
     await logoutUsuario();
     router.refresh();
-    window.location.href = '/';
+    window.location.href = '/login';
   }
 
   return (
@@ -308,7 +312,7 @@ export default function BancoQuestoesView({ usuario }: { usuario: UsuarioSessao 
               className="flex cursor-pointer items-center gap-1 rounded-full border-2 border-[#0A2E4A] bg-[#FFE3E3] px-3.5 py-1.5 font-['Baloo_2'] text-xs font-extrabold text-[#8A1F1F] shadow-[0_2px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5"
             >
               <LogOut className="h-3.5 w-3.5" />
-              <span>Sair da conta</span>
+              <span>Sair</span>
             </button>
           </div>
         </div>
@@ -426,6 +430,35 @@ export default function BancoQuestoesView({ usuario }: { usuario: UsuarioSessao 
               <span>Filtrar</span>
             </button>
           </form>
+
+          {/* ESCOPO: TODAS OU APENAS MINHAS (PROFESSOR) */}
+          {isProfessor && (
+            <div className="flex flex-wrap items-center gap-2 border-t border-[#0A2E4A]/10 pt-3">
+              <span className="font-['Baloo_2'] text-xs font-bold text-[#4A6B85]">Exibir:</span>
+              <button
+                type="button"
+                onClick={() => setApenasMinhas(false)}
+                className={`cursor-pointer rounded-full border-2 border-[#0A2E4A] px-3.5 py-1 font-['Baloo_2'] text-xs font-extrabold transition ${
+                  !apenasMinhas
+                    ? 'bg-[#2496ED] text-white shadow-[0_2px_0_0_#0A2E4A]'
+                    : 'bg-white text-[#4A6B85] hover:bg-[#EBF5FF]'
+                }`}
+              >
+                Todas da Comunidade
+              </button>
+              <button
+                type="button"
+                onClick={() => setApenasMinhas(true)}
+                className={`cursor-pointer rounded-full border-2 border-[#0A2E4A] px-3.5 py-1 font-['Baloo_2'] text-xs font-extrabold transition ${
+                  apenasMinhas
+                    ? 'bg-[#2496ED] text-white shadow-[0_2px_0_0_#0A2E4A]'
+                    : 'bg-white text-[#4A6B85] hover:bg-[#EBF5FF]'
+                }`}
+              >
+                Minhas Questões
+              </button>
+            </div>
+          )}
 
           {/* TAGS E ORDENAÇÃO */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#0A2E4A]/10 pt-3">
@@ -758,15 +791,12 @@ export default function BancoQuestoesView({ usuario }: { usuario: UsuarioSessao 
                   onChange={(e) => setTurmaDestino(e.target.value)}
                   className="w-full appearance-none rounded-[18px] border-[3px] border-[#0A2E4A] bg-[#EBF5FF] px-3.5 py-2.5 pr-10 text-xs font-semibold text-[#0A2E4A] shadow-[0_3px_0_0_#0A2E4A] focus:outline-none"
                 >
-                  {turmas.length > 0 ? (
-                    turmas.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.nome} ({t.id})
-                      </option>
-                    ))
-                  ) : (
-                    <option value="">Geral / Sem turma específica</option>
-                  )}
+                  <option value="">Todas as minhas turmas (Geral)</option>
+                  {turmas.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.nome} ({t.id})
+                    </option>
+                  ))}
                 </select>
                 <span className="pointer-events-none absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[#0A2E4A] bg-[#FFC53D]">
                   <ChevronDown className="h-3.5 w-3.5 text-[#0A2E4A]" />
