@@ -25,6 +25,7 @@ import {
   Calendar,
   User,
   PlusCircle,
+  X,
 } from 'lucide-react';
 import { UsuarioSessao } from '@/app/src/lib/session';
 import { logoutUsuario } from '@/app/actions/login';
@@ -222,7 +223,7 @@ export default function BancoQuestoesView({ usuario }: { usuario: UsuarioSessao 
 
       if (res.sucesso && res.avaliacaoId) {
         setMensagemSucesso(
-          `🎉 Avaliação criada com sucesso com ${questoesSelecionadas.length} questão(ões) da comunidade! Zero tokens de IA consumidos!`
+          `Avaliação criada com sucesso com ${questoesSelecionadas.length} questão(ões) selecionadas.`
         );
         setQuestoesSelecionadas([]);
         setModalCriacaoAberto(false);
@@ -360,19 +361,16 @@ export default function BancoQuestoesView({ usuario }: { usuario: UsuarioSessao 
                   <Library className="h-5 w-5 text-[#0A2E4A]" />
                 </span>
                 <span className="rounded-full border-2 border-[#0A2E4A] bg-[#FFEFC2] px-3 py-0.5 font-['Baloo_2'] text-xs font-extrabold text-[#0A2E4A]">
-                  Comunidade Colaborativa
-                </span>
-                <span className="rounded-full border-2 border-[#0A2E4A] bg-[#D1F2D9] px-3 py-0.5 font-['Baloo_2'] text-xs font-extrabold text-[#0F5132]">
-                  Economia de Tokens IA
+                  Banco de Questões
                 </span>
               </div>
 
               <h1 className="font-['Bricolage_Grotesque'] text-2xl font-extrabold text-[#0A2E4A] md:text-3xl">
-                Banco de Questões da Comunidade
+                Banco de Questões
               </h1>
 
               <p className="max-w-2xl font-['Nunito'] text-sm font-semibold text-[#4A6B85]">
-                Conglomerado público de questões pedagógicas compartilhadas por professores. Vote nas questões que achar melhores e selecione-as para montar avaliações instantâneas sem gastar tokens!
+                Repositório público de questões pedagógicas compartilhadas por professores. Avalie questões e selecione-as para compor novas avaliações.
               </p>
             </div>
 
@@ -476,7 +474,7 @@ export default function BancoQuestoesView({ usuario }: { usuario: UsuarioSessao 
                     : 'bg-white text-[#4A6B85]'
                 }`}
               >
-                🔥 Mais Votadas
+                Mais Votadas
               </button>
               <button
                 type="button"
@@ -487,7 +485,7 @@ export default function BancoQuestoesView({ usuario }: { usuario: UsuarioSessao 
                     : 'bg-white text-[#4A6B85]'
                 }`}
               >
-                ⏱️ Recentes
+                Mais Recentes
               </button>
             </div>
           </div>
@@ -505,7 +503,7 @@ export default function BancoQuestoesView({ usuario }: { usuario: UsuarioSessao 
                   {questoesSelecionadas.length} questão(ões) selecionada(s)
                 </p>
                 <p className="text-xs font-semibold text-[#0A2E4A]/80">
-                  Prontas para compor uma nova avaliação sem custos de tokens
+                  Prontas para compor uma nova avaliação
                 </p>
               </div>
             </div>
@@ -735,19 +733,19 @@ export default function BancoQuestoesView({ usuario }: { usuario: UsuarioSessao 
           <div className="w-full max-w-md rounded-[32px] border-[3px] border-[#0A2E4A] bg-white p-6 shadow-[0_12px_0_0_#0A2E4A]">
             <div className="flex items-center justify-between pb-3">
               <h3 className="font-['Bricolage_Grotesque'] text-xl font-extrabold text-[#0A2E4A]">
-                Criar Avaliação da Comunidade
+                Criar Nova Avaliação
               </h3>
               <button
                 type="button"
                 onClick={() => setModalCriacaoAberto(false)}
                 className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-2 border-[#0A2E4A] bg-white text-xs font-bold hover:bg-gray-100"
               >
-                ✕
+                <X className="h-4 w-4 text-[#0A2E4A]" />
               </button>
             </div>
 
             <p className="font-['Nunito'] text-xs font-semibold text-[#4A6B85]">
-              Você selecionou <strong>{questoesSelecionadas.length}</strong> questão(ões) do banco. Esta avaliação será criada instantaneamente e persistida no banco, sem consumir tokens de IA.
+              Você selecionou <strong>{questoesSelecionadas.length}</strong> questão(ões) do banco para criar uma nova avaliação vinculada à turma.
             </p>
 
             <div className="mt-4 space-y-3">

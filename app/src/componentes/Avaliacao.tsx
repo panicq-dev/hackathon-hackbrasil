@@ -58,7 +58,7 @@ export default function Avaliacao({
       const res = await publicarQuestaoComunidade(questao, 'Geral');
       if (res.sucesso) {
         setPublicadas((prev) => ({ ...prev, [index]: true }));
-        setMensagemSucesso(`Questão #${index + 1} publicada na comunidade com sucesso!`);
+        setMensagemSucesso(`Questão #${index + 1} publicada no banco de questões com sucesso!`);
       } else {
         setErro(res.erro || 'Falha ao publicar questão.');
       }
@@ -84,7 +84,7 @@ export default function Avaliacao({
           }
         }
       }
-      setMensagemSucesso(`${count} questão(ões) publicada(s) na comunidade com sucesso!`);
+      setMensagemSucesso(`${count} questão(ões) publicada(s) no banco de questões com sucesso!`);
     } catch {
       setErro('Erro ao publicar questões em lote.');
     } finally {
@@ -143,7 +143,7 @@ export default function Avaliacao({
                 className="flex cursor-pointer items-center gap-1.5 rounded-full border-2 border-[#0A2E4A] bg-[#FFC53D] px-3.5 py-1.5 font-['Baloo_2'] text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5 disabled:opacity-60"
               >
                 <Globe className="h-3.5 w-3.5 text-[#0A2E4A]" />
-                <span>{publicandoTodas ? 'Publicando todas...' : 'Publicar todas na Comunidade'}</span>
+                <span>{publicandoTodas ? 'Publicando todas...' : 'Publicar todas no Banco'}</span>
               </button>
 
               <span className="rounded-xl border-2 border-[#0A2E4A] bg-[#FFEFC2] px-3 py-1 font-['Baloo_2'] text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A]">
@@ -199,7 +199,7 @@ export default function Avaliacao({
                   {jaPublicada ? (
                     <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-[#0A2E4A] bg-[#D1F2D9] px-3 py-1 font-['Baloo_2'] text-xs font-extrabold text-[#0F5132] shadow-[0_2px_0_0_#0A2E4A]">
                       <Check className="h-3.5 w-3.5" />
-                      Publicada na Comunidade
+                      Publicada no Banco
                     </span>
                   ) : (
                     <button
@@ -209,7 +209,7 @@ export default function Avaliacao({
                       className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border-2 border-[#0A2E4A] bg-[#FFC53D] px-3 py-1 font-['Baloo_2'] text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5 disabled:opacity-60"
                     >
                       <Share2 className="h-3.5 w-3.5" />
-                      <span>{publicandoIndice === index ? 'Publicando...' : 'Publicar na Comunidade'}</span>
+                      <span>{publicandoIndice === index ? 'Publicando...' : 'Publicar no Banco'}</span>
                     </button>
                   )}
                 </div>

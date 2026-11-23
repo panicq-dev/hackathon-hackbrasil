@@ -69,7 +69,7 @@ export default function GeradorAvaliativo({ onAvaliacaoGerada }: GeradorAvaliati
       if (resposta) {
         if (resposta.reaproveitadasDoBanco && resposta.reaproveitadasDoBanco > 0) {
           setFeedbackEconomia(
-            `✨ ${resposta.reaproveitadasDoBanco} questão(ões) consumidas do Banco da Comunidade! Economia estimada de ${resposta.tokensEconomizadosPercentual}% de tokens.`
+            `${resposta.reaproveitadasDoBanco} questão(ões) reaproveitadas diretamente do banco de questões.`
           );
         }
         onAvaliacaoGerada(resposta);
@@ -204,7 +204,7 @@ export default function GeradorAvaliativo({ onAvaliacaoGerada }: GeradorAvaliati
           </div>
         </div>
 
-        {/* Integração com a Comunidade (Redução de Tokens) */}
+        {/* Integração com o Banco de Questões */}
         <div className="rounded-[22px] border-2 border-[#0A2E4A] bg-[#F6FBFF] p-3.5 shadow-[0_3px_0_0_#0A2E4A] space-y-2.5">
           <label className="flex items-center gap-2.5 cursor-pointer">
             <input
@@ -216,13 +216,10 @@ export default function GeradorAvaliativo({ onAvaliacaoGerada }: GeradorAvaliati
             <div className="text-xs">
               <span className="font-['Baloo_2'] font-extrabold text-[#0A2E4A] flex items-center gap-1.5">
                 <Users className="h-3.5 w-3.5 text-[#2496ED]" />
-                Reaproveitar questões da Comunidade
-                <span className="rounded-full bg-[#D1F2D9] px-2 py-0.5 text-[10px] font-extrabold text-[#0F5132] border border-[#0A2E4A]/30">
-                  Economiza Tokens IA
-                </span>
+                Reaproveitar questões do Banco
               </span>
               <p className="text-[11px] text-[#4A6B85] font-semibold mt-0.5">
-                Se outros professores já publicaram questões com boa avaliação sobre o tema, consome primeiro do banco e gera pela IA apenas o restante!
+                Busca questões já cadastradas com boa avaliação sobre o tema para compor a avaliação.
               </p>
             </div>
           </label>
@@ -237,10 +234,10 @@ export default function GeradorAvaliativo({ onAvaliacaoGerada }: GeradorAvaliati
             <div className="text-xs">
               <span className="font-['Baloo_2'] font-bold text-[#0A2E4A] flex items-center gap-1.5">
                 <Share2 className="h-3.5 w-3.5 text-[#FFC53D]" />
-                Publicar novas questões geradas na Comunidade
+                Disponibilizar novas questões no Banco Público
               </span>
               <p className="text-[11px] text-[#4A6B85] font-semibold mt-0.5">
-                Compartilha as questões com outros professores para que possam votar e reutilizar.
+                Permite que outros professores visualizem, avaliem e utilizem as questões.
               </p>
             </div>
           </label>
