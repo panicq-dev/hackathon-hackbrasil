@@ -101,14 +101,14 @@ export async function gerarAvaliacao(
       ${conteudos_detalhados}. Forneça um enunciado bem elaborado e contextualizado, sempre tendo como base os vestibulinhos e vestibulares. 
       Um total de ${qtdParaGerar} questões.
 
-Regras importantes: 
-- Deve gerar exatamente ${qtdParaGerar} questões dentro do array "questoes".
-- Os campos de validação devem ser claros e objetivos, permitindo que o usuário compreenda facilmente o que é esperado como resposta.
-- O mapeamento de erros deve ser útil para identificar possíveis lacunas de aprendizagem do estudante, fornecendo informações relevantes para o professor de forma simples e direta, sem entrar em detalhes complexos. Exemplo de "erroProvavel": "Raiz Quadrada", "Potenciação" ou "Sinais Matemáticos".
-- Seja certeiro nos ids dos campos de validação, garantindo que cada um seja único e facilmente identificável.
-- Seja certeiro nos ids de mapeamento de erros, garantindo que cada um referencie um id de campo de validação existente.
-- Deve-se ter no mínimo 2 campos de validação por questão, mas podem ser mais.
-`;
+  Regras importantes: 
+  - Deve gerar exatamente ${quantidadeQuestoes} questões dentro do array "questoes".
+  - Os campos de validação devem ser claros e objetivos, permitindo que o usuário compreenda facilmente o que é esperado como resposta.
+  - O mapeamento de erros deve ser útil para identificar possíveis lacunas de aprendizagem do estudante, fornecendo informações relevantes para o professor de forma simples e direta, sem entrar em detalhes complexos. Exemplo de "erroProvavel": "Raiz Quadrada", "Potenciação" ou "Sinais Matemáticos".
+  - Seja certeiro nos ids dos campos de validação, garantindo que cada um seja único e facilmente identificável.
+  - Seja certeiro nos ids de mapeamento de erros, garantindo que cada um referencie um id de campo de validação existente.
+  - Deve-se ter no mínimo 2 campos de validação por questão, mas podem ser mais.
+  `;
 
       const MODELOS_GEMINI = ['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.5-flash'];
       let textoResposta: string | null = null;

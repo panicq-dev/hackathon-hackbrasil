@@ -14,10 +14,9 @@ import {
   LogOut,
   ShieldCheck,
   GraduationCap,
-  School,
   ArrowRight,
-  Clock,
 } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { UsuarioSessao } from '@/app/src/lib/session';
 import { logoutUsuario } from '@/app/actions/login';
 import {
@@ -41,84 +40,21 @@ const ROTULO = [
 const FOCO =
   'group relative cursor-pointer rounded-full outline-none focus-visible:ring-4 focus-visible:ring-[#1D63ED]/40';
 
-export default function DashboardView({ usuario }: { usuario: UsuarioSessao }) {
+export function DashboardChrome({
+  usuario,
+  children,
+}: {
+  usuario: UsuarioSessao;
+  children: ReactNode;
+}) {
   const router = useRouter();
-  const [turmas, setTurmas] = useState<TurmaItem[]>([]);
-  const [turmaAluno, setTurmaAluno] = useState<{ id: string; nome: string } | null>(null);
-  const [carregando, setCarregando] = useState(true);
-
-  // Formulário de criação
-  const [nomeTurma, setNomeTurma] = useState('');
-  const [criandoTurma, setCriandoTurma] = useState(false);
-  const [mensagemSucesso, setMensagemSucesso] = useState('');
-  const [erro, setErro] = useState('');
-
-  // Cópia de código
-  const [copiadoId, setCopiadoId] = useState<string | null>(null);
-
   const isProfessor = usuario.perfil === 'professor';
-
-  async function carregarDados() {
-    setCarregando(true);
-    try {
-      if (isProfessor) {
-        const res = await listarTurmasProfessor();
-        if (res.turmas) {
-          setTurmas(res.turmas);
-        }
-      } else {
-        const res = await obterTurmaDoAluno();
-        if (res.turma) {
-          setTurmaAluno(res.turma);
-        }
-      }
-    } catch (e) {
-      console.error('Erro ao carregar dashboard:', e);
-    } finally {
-      setCarregando(false);
-    }
-  }
-
-  useEffect(() => {
-    carregarDados();
-  }, []);
-
-  async function handleCriarTurma(e: React.FormEvent) {
-    e.preventDefault();
-    setErro('');
-    setMensagemSucesso('');
-    setCriandoTurma(true);
-
-    try {
-      const res = await criarTurma(nomeTurma);
-      if (res.erro) {
-        setErro(res.erro);
-      } else if (res.turma) {
-        setTurmas((prev) => [res.turma!, ...prev]);
-        setMensagemSucesso(`Turma "${res.turma.nome}" criada com sucesso.`);
-        setNomeTurma('');
-      }
-    } catch {
-      setErro('Erro ao criar turma. Tente novamente.');
-    } finally {
-      setCriandoTurma(false);
-    }
-  }
-
-  function handleCopiarCodigo(codigo: string) {
-    navigator.clipboard.writeText(codigo);
-    setCopiadoId(codigo);
-    setTimeout(() => setCopiadoId(null), 2000);
-  }
 
   async function handleLogout() {
     await logoutUsuario();
     router.refresh();
-    window.location.href = '/login';
+    router.push('/login');
   }
-
-  const totalAlunosGeral = turmas.reduce((acc, t) => acc + t.totalAlunos, 0);
-  const totalAvaliacoesGeral = turmas.reduce((acc, t) => acc + t.totalAvaliacoes, 0);
 
   return (
     <div
@@ -130,14 +66,12 @@ export default function DashboardView({ usuario }: { usuario: UsuarioSessao }) {
     >
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Nunito:wght@600;700;800&display=swap');`}</style>
 
-      {/* manchas de cor de fundo */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute -left-24 top-10 h-72 w-72 rounded-[60%_40%_55%_45%] bg-[#BFE3F7]/70 blur-2xl" />
         <div className="absolute right-[-60px] top-1/3 h-80 w-80 rounded-[45%_55%_40%_60%] bg-[#C6EFE9]/70 blur-2xl" />
         <div className="absolute bottom-[-40px] left-1/3 h-64 w-64 rounded-[55%_45%_60%_40%] bg-[#FFEFC2]/80 blur-2xl" />
       </div>
 
-      {/* BARRA SUPERIOR DE SESSÃO */}
       <div className="relative z-30 mx-auto mb-8 max-w-5xl">
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-[26px] border-[3px] border-[#0A2E4A] bg-white px-5 py-3 shadow-[0_5px_0_0_#0A2E4A]">
           <div className="flex items-center gap-3">
@@ -186,7 +120,6 @@ export default function DashboardView({ usuario }: { usuario: UsuarioSessao }) {
         </div>
       </div>
 
-      {/* DOCK DE BOLINHAS */}
       <nav
         aria-label="Navegação principal"
         className={[
@@ -217,6 +150,84 @@ export default function DashboardView({ usuario }: { usuario: UsuarioSessao }) {
         </Link>
       </nav>
 
+      {children}
+    </div>
+  );
+}
+
+export default function DashboardView({ usuario }: { usuario: UsuarioSessao }) {
+  const [turmas, setTurmas] = useState<TurmaItem[]>([]);
+  const [turmaAluno, setTurmaAluno] = useState<{ id: string; nome: string } | null>(null);
+  const [carregando, setCarregando] = useState(true);
+
+  // Formulário de criação
+  const [nomeTurma, setNomeTurma] = useState('');
+  const [criandoTurma, setCriandoTurma] = useState(false);
+  const [mensagemSucesso, setMensagemSucesso] = useState('');
+  const [erro, setErro] = useState('');
+
+  // Cópia de código
+  const [copiadoId, setCopiadoId] = useState<string | null>(null);
+
+  const isProfessor = usuario.perfil === 'professor';
+
+  useEffect(() => {
+    let ativo = true;
+
+    Promise.resolve().then(async () => {
+      try {
+        if (isProfessor) {
+          const res = await listarTurmasProfessor();
+          if (ativo && res.turmas) setTurmas(res.turmas);
+        } else {
+          const res = await obterTurmaDoAluno();
+          if (ativo && res.turma) setTurmaAluno(res.turma);
+        }
+      } catch (e) {
+        if (ativo) console.error('Erro ao carregar dashboard:', e);
+      } finally {
+        if (ativo) setCarregando(false);
+      }
+    });
+
+    return () => {
+      ativo = false;
+    };
+  }, [isProfessor]);
+
+  async function handleCriarTurma(e: React.FormEvent) {
+    e.preventDefault();
+    setErro('');
+    setMensagemSucesso('');
+    setCriandoTurma(true);
+
+    try {
+      const res = await criarTurma(nomeTurma);
+      if (res.erro) {
+        setErro(res.erro);
+      } else if (res.turma) {
+        setTurmas((prev) => [res.turma!, ...prev]);
+        setMensagemSucesso(`Turma "${res.turma.nome}" criada com sucesso.`);
+        setNomeTurma('');
+      }
+    } catch {
+      setErro('Erro ao criar turma. Tente novamente.');
+    } finally {
+      setCriandoTurma(false);
+    }
+  }
+
+  function handleCopiarCodigo(codigo: string) {
+    navigator.clipboard.writeText(codigo);
+    setCopiadoId(codigo);
+    setTimeout(() => setCopiadoId(null), 2000);
+  }
+
+  const totalAlunosGeral = turmas.reduce((acc, t) => acc + t.totalAlunos, 0);
+  const totalAvaliacoesGeral = turmas.reduce((acc, t) => acc + t.totalAvaliacoes, 0);
+
+  return (
+    <DashboardChrome usuario={usuario}>
       <div className="relative z-10 mx-auto max-w-5xl">
         {/* Cabeçalho */}
         <header className="mb-8">
@@ -406,6 +417,6 @@ export default function DashboardView({ usuario }: { usuario: UsuarioSessao }) {
           </div>
         )}
       </div>
-    </div>
+    </DashboardChrome>
   );
 }
