@@ -289,7 +289,10 @@ export async function buscarQuestoesParaReaproveitar(
       LEFT JOIN questoes_reacoes r ON r.questao_id = q.id
       WHERE q.publica = true AND (${condicoes})
       GROUP BY q.id, q.questao, m.tag
-      ORDER BY ("likes" - "dislikes") DESC, q.criado_em DESC
+      ORDER BY (
+        COALESCE(COUNT(CASE WHEN r.tipo = 'like' THEN 1 END), 0) -
+        COALESCE(COUNT(CASE WHEN r.tipo = 'dislike' THEN 1 END), 0)
+      ) DESC, q.criado_em DESC
       LIMIT $${params.length}
     `;
 

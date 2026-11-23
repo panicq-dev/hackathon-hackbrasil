@@ -105,17 +105,32 @@ Regras importantes:
 - Deve-se ter no mínimo 2 campos de validação por questão, mas podem ser mais.
 `;
 
-      const interacao = await ia.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: avaliacaoSchema,
-          temperature: 0.7
+      const MODELOS_FALLBACK = ['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.5-flash'];
+      let interacao = null;
+      for (const modelo of MODELOS_FALLBACK) {
+        try {
+          interacao = await ia.models.generateContent({
+            model: modelo,
+            contents: prompt,
+            config: {
+              responseMimeType: 'application/json',
+              responseSchema: avaliacaoSchema,
+              temperature: 0.7
+            }
+          });
+          break;
+        } catch (erroModelo: any) {
+          const status = erroModelo?.status ?? erroModelo?.httpStatus ?? erroModelo?.code;
+          const ehUltimoModelo = modelo === MODELOS_FALLBACK[MODELOS_FALLBACK.length - 1];
+          if ((status === 503 || status === 429) && !ehUltimoModelo) {
+            console.warn(`Modelo ${modelo} indisponivel (${status}), tentando proximo...`);
+            continue;
+          }
+          throw erroModelo;
         }
-      });
+      }
 
-      if (interacao.text) {
+      if (interacao?.text) {
         const conteudo = JSON.parse(interacao.text);
         novasQuestoes = conteudo.questoes || [];
 
