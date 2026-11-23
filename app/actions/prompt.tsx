@@ -2,6 +2,7 @@
 import { GoogleGenAI, Type, Schema } from '@google/genai';
 import { Avaliacoes } from '../src/types/index';
 import { pool } from '../src/db';
+import { obterSessao } from '../src/lib/session';
 
 const ia = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -55,6 +56,10 @@ export async function gerarAvaliacao(
   quantidadeQuestoes: number
 ): Promise<Avaliacoes | null> {
   try {
+    const sessao = await obterSessao();
+    if (sessao && sessao.perfil !== 'professor') {
+      throw new Error("Apenas professores podem gerar avaliações.");
+    }
     const prompt = `Procure a fundo questões de vestibulinhos para jovens do Ensino Fundamental II, como Etec e afins para elaborar questões dos seguintes conteúdos: ${conteudos_principais}, no qual deve se atentar a: 
     ${conteudos_detalhados}. Forneça um enunciado bem elaborado e contextualizado, sempre tendo como base os vestibulinhos e vestibulares. 
     Um total de ${quantidadeQuestoes} questões.
@@ -82,12 +87,14 @@ Regras importantes:
 
     const conteudo = JSON.parse(interacao.text);
 
+    const professorId = sessao?.perfil === 'professor' ? Number(sessao.id) : null;
+
     // Serializa o JSON explicitamente para evitar erro de sintaxe no pg
     const { rows } = await pool.query(
-      `INSERT INTO avaliacoes (conteudo) 
-       VALUES ($1::jsonb) 
+      `INSERT INTO avaliacoes (conteudo, professor_id) 
+       VALUES ($1::jsonb, $2) 
        RETURNING id`,
-      [JSON.stringify(conteudo)]
+      [JSON.stringify(conteudo), professorId]
     );
 
     const dbAvaliacaoId = rows[0].id;
