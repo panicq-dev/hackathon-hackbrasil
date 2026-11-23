@@ -1,6 +1,7 @@
 'use server';
 
 import { GoogleGenAI, Type, Schema } from '@google/genai';
+import Groq from 'groq-sdk';
 import { Avaliacoes, EstruturaQuestao } from '../src/types/index';
 import { pool } from '../src/db';
 import { obterSessao } from '../src/lib/session';
@@ -8,6 +9,10 @@ import { buscarQuestoesParaReaproveitar, publicarQuestaoComunidade } from './que
 
 const ia = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
+});
+
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
 });
 
 const avaliacaoSchema: Schema = {
@@ -105,11 +110,13 @@ Regras importantes:
 - Deve-se ter no mínimo 2 campos de validação por questão, mas podem ser mais.
 `;
 
-      const MODELOS_FALLBACK = ['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.5-flash'];
-      let interacao = null;
-      for (const modelo of MODELOS_FALLBACK) {
+      const MODELOS_GEMINI = ['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.5-flash'];
+      let textoResposta: string | null = null;
+
+      // Tenta cada modelo Gemini em cascata
+      for (const modelo of MODELOS_GEMINI) {
         try {
-          interacao = await ia.models.generateContent({
+          const interacao = await ia.models.generateContent({
             model: modelo,
             contents: prompt,
             config: {
@@ -118,20 +125,48 @@ Regras importantes:
               temperature: 0.7
             }
           });
+          if (interacao.text) {
+            textoResposta = interacao.text;
+          }
           break;
-        } catch (erroModelo: any) {
-          const status = erroModelo?.status ?? erroModelo?.httpStatus ?? erroModelo?.code;
-          const ehUltimoModelo = modelo === MODELOS_FALLBACK[MODELOS_FALLBACK.length - 1];
-          if ((status === 503 || status === 429) && !ehUltimoModelo) {
-            console.warn(`Modelo ${modelo} indisponivel (${status}), tentando proximo...`);
+        } catch (erroGemini: any) {
+          const status = erroGemini?.status ?? erroGemini?.httpStatus ?? erroGemini?.code;
+          const ehUltimoGemini = modelo === MODELOS_GEMINI[MODELOS_GEMINI.length - 1];
+          if ((status === 503 || status === 429) && !ehUltimoGemini) {
+            console.warn(`Gemini ${modelo} indisponivel (${status}), tentando proximo...`);
             continue;
           }
-          throw erroModelo;
+          // Todos os Gemini falharam — tenta Groq como fallback final
+          console.warn(`Todos os modelos Gemini falharam, usando Groq como fallback...`);
+          try {
+            const respostaGroq = await groq.chat.completions.create({
+              model: 'llama-3.3-70b-versatile',
+              messages: [
+                {
+                  role: 'system',
+                  content: 'Voce e um assistente educacional. Responda APENAS com JSON valido, sem markdown, sem blocos de codigo, sem explicacoes adicionais.'
+                },
+                {
+                  role: 'user',
+                  content: `${prompt}\n\nResponda SOMENTE com um JSON no formato: {"questoes": [{"id": "string", "enunciado": "string", "camposValidacao": [{"id": "string", "label": "string", "tipo": "texto|numero|alternativa", "respostaCorreta": "string"}], "mapeamentoDeErros": [{"id": "string", "erroProvavel": "string"}]}]}`
+                }
+              ],
+              temperature: 0.7,
+              max_tokens: 4096,
+            });
+            const conteudoGroq = respostaGroq.choices[0]?.message?.content ?? null;
+            if (conteudoGroq) {
+              textoResposta = conteudoGroq;
+            }
+          } catch (erroGroq) {
+            console.error('Groq tambem falhou:', erroGroq);
+            throw erroGroq;
+          }
         }
       }
 
-      if (interacao?.text) {
-        const conteudo = JSON.parse(interacao.text);
+      if (textoResposta) {
+        const conteudo = JSON.parse(textoResposta);
         novasQuestoes = conteudo.questoes || [];
 
         // 3. Se optou por publicar novas na comunidade, persiste cada uma no database
