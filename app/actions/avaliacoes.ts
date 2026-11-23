@@ -91,6 +91,50 @@ export type RelatorioConsolidado = {
   lacunasGeraisTurma: Record<string, number>;
 };
 
+export type RankingCausaRaiz = {
+  causaRaiz: string;
+  totalErros: number;
+  porcentagemSobreTotalErros: number;
+};
+
+export type RegistroAnalise = {
+  alunoId: number;
+  alunoNome: string;
+  alunoMatricula: string;
+  turmaId: string;
+  avaliacaoId: string;
+  questaoNumero: number;
+  enunciado: string;
+  campoId: string;
+  campoLabel: string;
+  respostaAluno: string | number | null;
+  respostaEsperada: string | number;
+  acertou: boolean;
+  causaRaiz: string | null;
+  enviadoEm: string;
+};
+
+export type FeedbackQuestaoAluno = {
+  questaoIndex: number;
+  enunciado: string;
+  campos: {
+    campoId: string;
+    label: string;
+    respostaInformada: string | number | null;
+    acertou: boolean;
+    causaRaizSeIncorreto: string | null;
+  }[];
+};
+
+export type FeedbackAlunoResultado = {
+  avaliacaoId: string;
+  totalCampos: number;
+  totalAcertos: number;
+  porcentagemAcerto: number;
+  questoes: FeedbackQuestaoAluno[];
+  lacunasIdentificadas: string[];
+};
+
 export async function listarAvaliacoes(): Promise<{
   ok?: boolean;
   erro?: string;
@@ -289,17 +333,38 @@ function normalizarTexto(val: string | number | null | undefined): string {
   return String(val).trim().toLowerCase().replace(/,/g, ".");
 }
 
+function avaliarFracao(str: string): number | null {
+  const match = str.trim().match(/^(-?\d+)\s*\/\s*(\d+)$/);
+  if (!match) return null;
+  const num = Number(match[1]);
+  const den = Number(match[2]);
+  if (den === 0) return null;
+  return num / den;
+}
+
 function verificarAcerto(esperado: string | number, informado: string | number | null | undefined): boolean {
-  if (informado === null || informado === undefined || informado === "") return false;
+  if (informado === null || informado === undefined || String(informado).trim() === "") return false;
 
-  const nEsperado = Number(String(esperado).replace(/,/g, "."));
-  const nInformado = Number(String(informado).replace(/,/g, "."));
+  const sEsperado = String(esperado).trim();
+  const sInformado = String(informado).trim();
 
-  if (!isNaN(nEsperado) && !isNaN(nInformado)) {
-    return Math.abs(nEsperado - nInformado) < 0.0001;
+  // Comparação textual direta
+  if (normalizarTexto(sEsperado) === normalizarTexto(sInformado)) {
+    return true;
   }
 
-  return normalizarTexto(esperado) === normalizarTexto(informado);
+  // Comparação de frações ou números decimais
+  const fracEsperado = avaliarFracao(sEsperado);
+  const fracInformado = avaliarFracao(sInformado);
+
+  const numEsperado = fracEsperado !== null ? fracEsperado : Number(sEsperado.replace(/,/g, "."));
+  const numInformado = fracInformado !== null ? fracInformado : Number(sInformado.replace(/,/g, "."));
+
+  if (!isNaN(numEsperado) && !isNaN(numInformado)) {
+    return Math.abs(numEsperado - numInformado) < 0.0001;
+  }
+
+  return false;
 }
 
 export async function obterDadosConsolidadosParaAnalise(avaliacaoId: string): Promise<{
@@ -439,5 +504,184 @@ export async function obterDadosConsolidadosParaAnalise(avaliacaoId: string): Pr
     const err = e as Error;
     console.error("Erro ao consolidar análise:", err);
     return { erro: err.message || "Erro ao preparar os dados de análise." };
+  }
+}
+
+export async function obterMatrizAnaliseDados(avaliacaoId: string): Promise<{
+  ok?: boolean;
+  erro?: string;
+  relatorio?: RelatorioConsolidado;
+  linhasAnalise?: RegistroAnalise[];
+  rankingCausasRaiz?: RankingCausaRaiz[];
+  estatisticas?: {
+    totalAlunos: number;
+    totalCamposAvaliados: number;
+    totalErrosGerais: number;
+    taxaAcertoGeral: number;
+  };
+}> {
+  const dados = await obterDadosConsolidadosParaAnalise(avaliacaoId);
+  if (dados.erro || !dados.relatorio) {
+    return { erro: dados.erro || "Falha ao obter dados para matriz." };
+  }
+
+  const rel = dados.relatorio;
+  const linhas: RegistroAnalise[] = [];
+  let totalCamposAvaliados = 0;
+  let totalAcertosGerais = 0;
+
+  for (const itemAluno of rel.alunos) {
+    for (const q of itemAluno.diagnostico) {
+      for (const campo of q.campos) {
+        totalCamposAvaliados++;
+        if (campo.correto) {
+          totalAcertosGerais++;
+        }
+
+        linhas.push({
+          alunoId: itemAluno.aluno.id,
+          alunoNome: itemAluno.aluno.nome,
+          alunoMatricula: itemAluno.aluno.matricula,
+          turmaId: itemAluno.aluno.turmaId,
+          avaliacaoId,
+          questaoNumero: q.questaoIndex,
+          enunciado: q.enunciado,
+          campoId: campo.campoId,
+          campoLabel: campo.label,
+          respostaAluno: campo.respostaAluno,
+          respostaEsperada: campo.respostaEsperada,
+          acertou: campo.correto,
+          causaRaiz: campo.erroProvavelSeIncorreto,
+          enviadoEm: itemAluno.enviadoEm,
+        });
+      }
+    }
+  }
+
+  const totalErrosGerais = totalCamposAvaliados - totalAcertosGerais;
+  const ranking: RankingCausaRaiz[] = Object.entries(rel.lacunasGeraisTurma)
+    .map(([causaRaiz, totalErros]) => ({
+      causaRaiz,
+      totalErros,
+      porcentagemSobreTotalErros:
+        totalErrosGerais > 0 ? Math.round((totalErros / totalErrosGerais) * 100) : 0,
+    }))
+    .sort((a, b) => b.totalErros - a.totalErros);
+
+  const taxaAcertoGeral =
+    totalCamposAvaliados > 0
+      ? Math.round((totalAcertosGerais / totalCamposAvaliados) * 100)
+      : 0;
+
+  return {
+    ok: true,
+    relatorio: rel,
+    linhasAnalise: linhas,
+    rankingCausasRaiz: ranking,
+    estatisticas: {
+      totalAlunos: rel.totalRespondentes,
+      totalCamposAvaliados,
+      totalErrosGerais,
+      taxaAcertoGeral,
+    },
+  };
+}
+
+export async function obterFeedbackAluno(avaliacaoId: string): Promise<{
+  ok?: boolean;
+  erro?: string;
+  feedback?: FeedbackAlunoResultado;
+}> {
+  try {
+    await garantirTabelaRespostas();
+    const sessao = await exigirSessao("aluno");
+    const alunoId = Number(sessao.id);
+
+    if (!avaliacaoId || typeof avaliacaoId !== "string") {
+      return { erro: "Identificador da avaliação inválido." };
+    }
+
+    const avaliacaoRes = await pool.query<{
+      id: string;
+      conteudo: { questoes?: EstruturaQuestao[] };
+    }>(
+      `SELECT id, conteudo FROM avaliacoes WHERE id = $1 LIMIT 1`,
+      [avaliacaoId]
+    );
+
+    if (avaliacaoRes.rowCount === 0) {
+      return { erro: "Avaliação não encontrada." };
+    }
+
+    const questoes = avaliacaoRes.rows[0].conteudo?.questoes ?? [];
+
+    const respostaRes = await pool.query<{
+      respostas: Record<string, string | number>;
+    }>(
+      `SELECT respostas FROM respostas_avaliacoes WHERE avaliacao_id = $1 AND aluno_id = $2 LIMIT 1`,
+      [avaliacaoId, alunoId]
+    );
+
+    if (respostaRes.rowCount === 0) {
+      return { erro: "Você ainda não respondeu a esta avaliação." };
+    }
+
+    const respostasDadas = respostaRes.rows[0].respostas ?? {};
+    let totalCampos = 0;
+    let totalAcertos = 0;
+    const lacunas: string[] = [];
+
+    const questoesFeedback: FeedbackQuestaoAluno[] = questoes.map((q, qIndex) => {
+      const mapaErros = new Map<string, string>();
+      q.mapeamentoDeErros?.forEach((m) => {
+        mapaErros.set(m.id, m.erroProvavel);
+      });
+
+      const campos = q.camposValidacao.map((c) => {
+        totalCampos++;
+        const resposta = respostasDadas[c.id] ?? null;
+        const acertou = verificarAcerto(c.respostaCorreta, resposta);
+
+        let causaRaiz: string | null = null;
+        if (acertou) {
+          totalAcertos++;
+        } else {
+          causaRaiz = mapaErros.get(c.id) ?? "Conceito Geral";
+          lacunas.push(causaRaiz);
+        }
+
+        return {
+          campoId: c.id,
+          label: c.label,
+          respostaInformada: resposta,
+          acertou,
+          causaRaizSeIncorreto: causaRaiz,
+        };
+      });
+
+      return {
+        questaoIndex: qIndex + 1,
+        enunciado: q.enunciado,
+        campos,
+      };
+    });
+
+    const porcentagem = totalCampos > 0 ? Math.round((totalAcertos / totalCampos) * 100) : 0;
+
+    return {
+      ok: true,
+      feedback: {
+        avaliacaoId,
+        totalCampos,
+        totalAcertos,
+        porcentagemAcerto: porcentagem,
+        questoes: questoesFeedback,
+        lacunasIdentificadas: Array.from(new Set(lacunas)),
+      },
+    };
+  } catch (e: unknown) {
+    const err = e as Error;
+    console.error("Erro ao obter feedback do aluno:", err);
+    return { erro: err.message || "Erro ao consultar feedback." };
   }
 }
