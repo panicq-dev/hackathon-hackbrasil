@@ -2,6 +2,13 @@
 
 import { pool } from "@/app/src/db";
 import { exigirSessao, obterSessao } from "@/app/src/lib/session";
+import {
+  calcularDesempenhoTurma,
+  obterPeriodoLetivo,
+  AvaliacaoParaDesempenho,
+  RespostaParaDesempenho,
+} from "@/app/src/lib/desempenho";
+import { EstruturaQuestao } from "@/app/src/types";
 
 export type TurmaItem = {
   id: string; // Código de 8 caracteres (ex: N9AD154Z)
@@ -16,6 +23,155 @@ export type AlunoTurma = {
   id: number;
   nome: string;
 };
+
+export type DesempenhoTurma = {
+  id: string;
+  nome: string;
+  ano: number;
+  bimestre: number | null;
+  anosDisponiveis: number[];
+  totalAvaliacoes: number;
+  mediaTurma: number | null;
+  consolidados: number;
+  emDesenvolvimento: number;
+  precisamDeApoio: number;
+  alunos: {
+    id: number;
+    nome: string;
+    matricula: string;
+    totalAvaliacoes: number;
+    totalRespondidas: number;
+    totalAcertos: number;
+    totalCampos: number;
+    percentual: number | null;
+    faixa: "consolidado" | "desenvolvimento" | "apoio" | "sem-avaliacao";
+    avaliacoes: {
+      id: string;
+      criadoEm: string;
+      totalAcertos: number;
+      totalCampos: number;
+      percentual: number | null;
+    }[];
+  }[];
+};
+
+export async function obterDesempenhoDaTurma(
+  turmaId: string,
+  ano: number,
+  bimestre: number | null
+): Promise<{ ok?: boolean; erro?: string; desempenho?: DesempenhoTurma }> {
+  try {
+    const sessao = await exigirSessao("professor");
+    const professorId = Number(sessao.id);
+
+    if (!turmaId.trim()) return { erro: "Turma inválida." };
+    if (!Number.isInteger(ano) || ano < 2000 || ano > 9999) {
+      return { erro: "Ano letivo inválido." };
+    }
+    if (bimestre !== null && ![1, 2, 3, 4].includes(bimestre)) {
+      return { erro: "Bimestre inválido." };
+    }
+
+    const turmaRes = await pool.query<{ id: string; nome: string }>(
+      `SELECT id, nome
+         FROM turmas
+        WHERE id = $1 AND professor_id = $2
+        LIMIT 1`,
+      [turmaId, professorId]
+    );
+
+    if (turmaRes.rowCount === 0) {
+      return { erro: "Turma não encontrada ou acesso não autorizado." };
+    }
+
+    const alunosRes = await pool.query<{
+      id: number;
+      nome: string;
+      matricula: string;
+    }>(
+      `SELECT id, nome, matricula
+         FROM alunos
+        WHERE turma_id = $1
+        ORDER BY nome ASC`,
+      [turmaId]
+    );
+
+    const avaliacoesRes = await pool.query<{
+      id: string;
+      criado_em: string;
+      conteudo: { questoes?: EstruturaQuestao[] } | null;
+    }>(
+      `SELECT id, criado_em, conteudo
+         FROM avaliacoes
+        WHERE turma_id = $1
+        ORDER BY criado_em DESC`,
+      [turmaId]
+    );
+
+    const todasAvaliacoes: AvaliacaoParaDesempenho[] = avaliacoesRes.rows.map((row) => ({
+      id: String(row.id),
+      criadoEm: new Date(row.criado_em).toISOString(),
+      questoes: row.conteudo?.questoes ?? [],
+    }));
+
+    const anosDisponiveis = Array.from(
+      new Set(todasAvaliacoes.map((avaliacao) => obterPeriodoLetivo(avaliacao.criadoEm).ano))
+    ).sort((a, b) => b - a);
+    if (!anosDisponiveis.includes(ano)) anosDisponiveis.unshift(ano);
+
+    const avaliacoesPeriodo = todasAvaliacoes.filter((avaliacao) => {
+      const periodo = obterPeriodoLetivo(avaliacao.criadoEm);
+      return periodo.ano === ano && (bimestre === null || periodo.bimestre === bimestre);
+    });
+
+    const idsAvaliacoes = avaliacoesPeriodo.map((avaliacao) => avaliacao.id);
+    const idsAlunos = alunosRes.rows.map((aluno) => aluno.id);
+    let respostas: RespostaParaDesempenho[] = [];
+
+    if (idsAvaliacoes.length > 0 && idsAlunos.length > 0) {
+      const respostasRes = await pool.query<{
+        avaliacao_id: string;
+        aluno_id: number;
+        respostas: Record<string, string | number>;
+      }>(
+        `SELECT avaliacao_id, aluno_id, respostas
+           FROM respostas_avaliacoes
+          WHERE avaliacao_id = ANY($1::uuid[])
+            AND aluno_id = ANY($2::integer[])`,
+        [idsAvaliacoes, idsAlunos]
+      );
+
+      respostas = respostasRes.rows.map((row) => ({
+        avaliacaoId: String(row.avaliacao_id),
+        alunoId: row.aluno_id,
+        respostas: row.respostas ?? {},
+      }));
+    }
+
+    const resultado = calcularDesempenhoTurma(
+      alunosRes.rows,
+      avaliacoesPeriodo,
+      respostas
+    );
+
+    return {
+      ok: true,
+      desempenho: {
+        id: turmaRes.rows[0].id,
+        nome: turmaRes.rows[0].nome,
+        ano,
+        bimestre,
+        anosDisponiveis,
+        totalAvaliacoes: avaliacoesPeriodo.length,
+        ...resultado,
+      },
+    };
+  } catch (e: unknown) {
+    const err = e as Error;
+    console.error("Erro ao calcular desempenho da turma:", err);
+    return { erro: err.message || "Não foi possível carregar o desempenho da turma." };
+  }
+}
 
 export async function criarTurma(nome: string): Promise<{
   ok?: boolean;

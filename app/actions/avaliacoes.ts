@@ -2,6 +2,7 @@
 
 import { pool } from "@/app/src/db";
 import { obterSessao, exigirSessao } from "@/app/src/lib/session";
+import { verificarAcerto } from "@/app/src/lib/desempenho";
 import { EstruturaQuestao } from "@/app/src/types";
 
 let tabelaInicializada = false;
@@ -326,45 +327,6 @@ export async function obterRespondentes(avaliacaoId: string): Promise<{
     console.error("Erro ao obter respondentes:", err);
     return { erro: err.message || "Não foi possível carregar os alunos que responderam." };
   }
-}
-
-function normalizarTexto(val: string | number | null | undefined): string {
-  if (val === null || val === undefined) return "";
-  return String(val).trim().toLowerCase().replace(/,/g, ".");
-}
-
-function avaliarFracao(str: string): number | null {
-  const match = str.trim().match(/^(-?\d+)\s*\/\s*(\d+)$/);
-  if (!match) return null;
-  const num = Number(match[1]);
-  const den = Number(match[2]);
-  if (den === 0) return null;
-  return num / den;
-}
-
-function verificarAcerto(esperado: string | number, informado: string | number | null | undefined): boolean {
-  if (informado === null || informado === undefined || String(informado).trim() === "") return false;
-
-  const sEsperado = String(esperado).trim();
-  const sInformado = String(informado).trim();
-
-  // Comparação textual direta
-  if (normalizarTexto(sEsperado) === normalizarTexto(sInformado)) {
-    return true;
-  }
-
-  // Comparação de frações ou números decimais
-  const fracEsperado = avaliarFracao(sEsperado);
-  const fracInformado = avaliarFracao(sInformado);
-
-  const numEsperado = fracEsperado !== null ? fracEsperado : Number(sEsperado.replace(/,/g, "."));
-  const numInformado = fracInformado !== null ? fracInformado : Number(sInformado.replace(/,/g, "."));
-
-  if (!isNaN(numEsperado) && !isNaN(numInformado)) {
-    return Math.abs(numEsperado - numInformado) < 0.0001;
-  }
-
-  return false;
 }
 
 export async function obterDadosConsolidadosParaAnalise(avaliacaoId: string): Promise<{
