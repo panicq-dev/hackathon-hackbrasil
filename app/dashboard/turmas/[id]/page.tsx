@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { obterSessao } from "@/app/src/lib/session";
 import DashboardTurmaView from "./DashboardTurmaView";
 
@@ -8,6 +9,7 @@ type Props = {
 };
 
 async function ConteudoAlunosTurma({ params }: Props) {
+  await connection();
   const { id } = await params;
   const sessao = await obterSessao();
 
