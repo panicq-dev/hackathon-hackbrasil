@@ -53,7 +53,8 @@ const avaliacaoSchema: Schema = {
 export async function gerarAvaliacao(
   conteudos_principais: string,
   conteudos_detalhados: string,
-  quantidadeQuestoes: number
+  quantidadeQuestoes: number,
+  turmaId?: string
 ): Promise<Avaliacoes | null> {
   try {
     const sessao = await obterSessao();
@@ -88,13 +89,14 @@ Regras importantes:
     const conteudo = JSON.parse(interacao.text);
 
     const professorId = sessao?.perfil === 'professor' ? Number(sessao.id) : null;
+    const turmaIdFinal = turmaId && turmaId.trim() ? turmaId.trim() : null;
 
     // Serializa o JSON explicitamente para evitar erro de sintaxe no pg
     const { rows } = await pool.query(
-      `INSERT INTO avaliacoes (conteudo, professor_id) 
-       VALUES ($1::jsonb, $2) 
+      `INSERT INTO avaliacoes (conteudo, professor_id, turma_id) 
+       VALUES ($1::jsonb, $2, $3) 
        RETURNING id`,
-      [JSON.stringify(conteudo), professorId]
+      [JSON.stringify(conteudo), professorId, turmaIdFinal]
     );
 
     const dbAvaliacaoId = rows[0].id;

@@ -8,8 +8,9 @@ import {
   Star
 } from "lucide-react";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { gerarAvaliacao } from "@/app/actions/prompt";
+import { listarTurmasProfessor, TurmaItem } from "@/app/actions/turmas";
 import { Avaliacoes } from "@/app/src/types/index";
 
 type GeradorAvaliativoProps = {
@@ -20,7 +21,24 @@ export default function GeradorAvaliativo({ onAvaliacaoGerada }: GeradorAvaliati
   const [conteudoPrincipal, setConteudoPrincipal] = useState('');
   const [conteudoDetalhado, setConteudoDetalhado] = useState('');
   const [quantidadeQuestoes, setQuantidadeQuestoes] = useState(10);
+  const [turmas, setTurmas] = useState<TurmaItem[]>([]);
+  const [turmaSelecionada, setTurmaSelecionada] = useState<string>('');
   const [carregando, setCarregando] = useState(false);
+
+  useEffect(() => {
+    async function carregarTurmas() {
+      try {
+        const res = await listarTurmasProfessor();
+        if (res.turmas && res.turmas.length > 0) {
+          setTurmas(res.turmas);
+          setTurmaSelecionada(res.turmas[0].id);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar turmas:", err);
+      }
+    }
+    carregarTurmas();
+  }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -30,7 +48,8 @@ export default function GeradorAvaliativo({ onAvaliacaoGerada }: GeradorAvaliati
       const resposta = await gerarAvaliacao(
         conteudoPrincipal,
         conteudoDetalhado,
-        quantidadeQuestoes
+        quantidadeQuestoes,
+        turmaSelecionada || undefined
       );
 
       if (resposta) {
@@ -76,10 +95,20 @@ export default function GeradorAvaliativo({ onAvaliacaoGerada }: GeradorAvaliati
               Para qual turma?
             </label>
             <div className="relative">
-              <select className="w-full appearance-none rounded-[18px] border-[3px] border-[#0A2E4A] bg-[#EBF5FF] px-3 py-2.5 pr-10 text-xs font-semibold text-[#0A2E4A] shadow-[0_3px_0_0_#0A2E4A] focus:outline-none">
-                <option>7º ano A</option>
-                <option>7º ano B</option>
-                <option>8º ano A</option>
+              <select
+                value={turmaSelecionada}
+                onChange={(e) => setTurmaSelecionada(e.target.value)}
+                className="w-full appearance-none rounded-[18px] border-[3px] border-[#0A2E4A] bg-[#EBF5FF] px-3 py-2.5 pr-10 text-xs font-semibold text-[#0A2E4A] shadow-[0_3px_0_0_#0A2E4A] focus:outline-none"
+              >
+                {turmas.length > 0 ? (
+                  turmas.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.nome} ({t.id})
+                    </option>
+                  ))
+                ) : (
+                  <option value="">Geral / Sem turma específica</option>
+                )}
               </select>
               <span className="pointer-events-none absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[#0A2E4A] bg-[#FFC53D]">
                 <ChevronDown className="h-3.5 w-3.5 text-[#0A2E4A]" />
