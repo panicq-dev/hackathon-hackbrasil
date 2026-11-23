@@ -20,10 +20,27 @@ export interface Avaliacoes{
 }
 
 export interface EstruturaQuestao {
+  id?: string;
+  bancoId?: number;
   enunciado: string;
   camposValidacao: CampoValidacao[];
   mapeamentoDeErros: MapeamentoErro[];
+  publicadaNaComunidade?: boolean;
 }
+
+export interface QuestaoComunidade {
+  id: number;
+  questao: EstruturaQuestao;
+  materiaTag: string;
+  professorNome: string;
+  professorId: number;
+  criadoEm: string;
+  likesCount: number;
+  dislikesCount: number;
+  meuVoto: 'like' | 'dislike' | null;
+  ehMinha: boolean;
+}
+
 // Avaliação
 export interface AvaliacaoProps {
   avaliacao?: Avaliacoes | null;

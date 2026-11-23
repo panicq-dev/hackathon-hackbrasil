@@ -77,6 +77,28 @@ export const questoes = pgTable("questoes", {
 		}),
 ]);
 
+export const questoesReacoes = pgTable("questoes_reacoes", {
+	id: integer().primaryKey().generatedAlwaysAsIdentity({ name: "questoes_reacoes_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
+	questaoId: integer("questao_id").notNull(),
+	professorId: integer("professor_id").notNull(),
+	tipo: varchar({ length: 10 }).notNull(),
+	criadoEm: timestamp("criado_em", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+	index("questoes_reacoes_questao_idx").using("btree", table.questaoId.asc().nullsLast().op("int4_ops")),
+	index("questoes_reacoes_professor_idx").using("btree", table.professorId.asc().nullsLast().op("int4_ops")),
+	foreignKey({
+		columns: [table.questaoId],
+		foreignColumns: [questoes.id],
+		name: "questoes_reacoes_questao_id_fkey"
+	}).onDelete("cascade"),
+	foreignKey({
+		columns: [table.professorId],
+		foreignColumns: [professores.id],
+		name: "questoes_reacoes_professor_id_fkey"
+	}).onDelete("cascade"),
+	unique("questoes_reacoes_unique").on(table.questaoId, table.professorId),
+]);
+
 export const avaliacoes = pgTable("avaliacoes", {
 	id: integer().primaryKey().generatedAlwaysAsIdentity({ name: "avaliacoes_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	professorId: integer("professor_id").notNull(),
