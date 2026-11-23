@@ -118,67 +118,6 @@ export async function loginUsuario(d: DadosLogin): Promise<ResultadoLogin> {
   }
 }
 
-export async function simularSessao(perfil: Perfil): Promise<ResultadoLogin> {
-  try {
-    if (perfil === "professor") {
-      const res = await pool.query<{
-        id: number;
-        nome: string;
-        email: string;
-      }>(
-        `SELECT id, nome, email
-           FROM professores
-          ORDER BY id ASC
-          LIMIT 1`
-      );
-
-      const row = res.rows[0];
-      if (!row) return { erro: "Nenhum professor encontrado no banco de dados." };
-
-      const usuario = {
-        id: row.id,
-        nome: row.nome,
-        email: row.email,
-        perfil: "professor" as const,
-      };
-
-      await criarSessao(usuario);
-      return { ok: true, usuario };
-    } else {
-      const res = await pool.query<{
-        id: number;
-        nome: string;
-        email: string;
-        matricula: string;
-        turma_id: string;
-      }>(
-        `SELECT id, nome, email, matricula, turma_id
-           FROM alunos
-          ORDER BY id ASC
-          LIMIT 1`
-      );
-
-      const row = res.rows[0];
-      if (!row) return { erro: "Nenhum aluno encontrado no banco de dados." };
-
-      const usuario = {
-        id: row.id,
-        nome: row.nome,
-        email: row.email,
-        perfil: "aluno" as const,
-        turmaId: row.turma_id,
-        matricula: row.matricula,
-      };
-
-      await criarSessao(usuario);
-      return { ok: true, usuario };
-    }
-  } catch (e) {
-    console.error("Erro ao simular sessão:", e);
-    return { erro: "Erro ao iniciar simulação de sessão." };
-  }
-}
-
 export async function obterUsuarioAtual(): Promise<UsuarioSessao | null> {
   return await obterSessao();
 }

@@ -12,10 +12,7 @@ import {
   ClipboardCheck,
   Library,
   LogOut,
-  RefreshCw,
   Users,
-  CheckCircle2,
-  Clock,
   ShieldCheck,
   GraduationCap,
 } from 'lucide-react';
@@ -29,7 +26,6 @@ import {
 } from '@/app/actions/avaliacoes';
 import {
   logoutUsuario,
-  simularSessao,
   obterUsuarioAtual,
 } from '@/app/actions/login';
 import { UsuarioSessao } from '@/app/src/lib/session';
@@ -70,7 +66,6 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
   const [avaliacaoRespostasAberta, setAvaliacaoRespostasAberta] = useState<string | null>(null);
   const [geradorAberto, setGeradorAberto] = useState(false);
   const [carregando, setCarregando] = useState(true);
-  const [alternandoSessao, setAlternandoSessao] = useState(false);
 
   async function carregarDados() {
     setCarregando(true);
@@ -96,40 +91,13 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
     carregarDados();
   }, []);
 
-  async function handleAlternarSessao() {
-    if (!usuario) return;
-    setAlternandoSessao(true);
-    const novoPerfil = usuario.perfil === 'professor' ? 'aluno' : 'professor';
-
-    try {
-      const res = await simularSessao(novoPerfil);
-      if (res.ok && res.usuario) {
-        setUsuario({
-          ...res.usuario,
-          exp: Date.now() + 7 * 86400000,
-        });
-        setAvaliacaoSelecionada(null);
-        setAvaliacaoRespostasAberta(null);
-        setGeradorAberto(false);
-        const listaRes = await listarAvaliacoes();
-        if (listaRes.avaliacoes) {
-          setAvaliacoes(listaRes.avaliacoes);
-        }
-      }
-    } catch (e) {
-      console.error('Erro ao alternar perfil:', e);
-    } finally {
-      setAlternandoSessao(false);
-    }
-  }
-
   async function handleLogout() {
     await logoutUsuario();
     if (onLogout) {
       onLogout();
     } else {
       router.refresh();
-      window.location.reload();
+      window.location.href = '/';
     }
   }
 
@@ -164,7 +132,7 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
         <div className="absolute bottom-[-40px] left-1/3 h-64 w-64 rounded-[55%_45%_60%_40%] bg-[#FFEFC2]/80 blur-2xl" />
       </div>
 
-      {/* BARRA SUPERIOR DE SESSÃO / SIMULAÇÃO */}
+      {/* BARRA SUPERIOR DE SESSÃO */}
       <div className="relative z-30 mx-auto mb-8 max-w-5xl">
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-[26px] border-[3px] border-[#0A2E4A] bg-white px-5 py-3 shadow-[0_5px_0_0_#0A2E4A]">
           <div className="flex items-center gap-3">
@@ -190,39 +158,27 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
                     isProfessor ? 'bg-[#FFEFC2] text-[#0A2E4A]' : 'bg-[#D1F2D9] text-[#0F5132]'
                   }`}
                 >
-                  {isProfessor ? 'Perfil Professor' : 'Perfil Aluno'}
+                  {isProfessor ? 'Professor' : 'Aluno'}
                 </span>
               </div>
               <p className="text-xs font-bold text-[#4A6B85]">
                 {isProfessor
-                  ? `Criando e monitorando avaliações (${usuario?.email})`
+                  ? usuario?.email
                   : `Turma: ${usuario?.turmaId || 'Geral'} • Matrícula: ${usuario?.matricula || '-'}`}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Botão de alternância rápida de sessão para simulação */}
-            <button
-              type="button"
-              disabled={alternandoSessao}
-              onClick={handleAlternarSessao}
-              title="Trocar rapidamente entre tela de Aluno e Professor"
-              className="flex cursor-pointer items-center gap-1.5 rounded-full border-2 border-[#0A2E4A] bg-[#EBF5FF] px-3.5 py-1.5 font-['Baloo_2'] text-xs font-extrabold text-[#14507F] shadow-[0_2px_0_0_#0A2E4A] transition hover:bg-[#BFE3F7] active:translate-y-0.5 disabled:opacity-60"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${alternandoSessao ? 'animate-spin' : ''}`} />
-              <span>Simular como {isProfessor ? 'Aluno' : 'Professor'}</span>
-            </button>
-
             {/* Logout */}
             <button
               type="button"
               onClick={handleLogout}
               title="Encerrar sessão"
-              className="flex cursor-pointer items-center gap-1 rounded-full border-2 border-[#0A2E4A] bg-[#FFE3E3] px-3 py-1.5 font-['Baloo_2'] text-xs font-extrabold text-[#8A1F1F] shadow-[0_2px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5"
+              className="flex cursor-pointer items-center gap-1 rounded-full border-2 border-[#0A2E4A] bg-[#FFE3E3] px-3.5 py-1.5 font-['Baloo_2'] text-xs font-extrabold text-[#8A1F1F] shadow-[0_2px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5"
             >
               <LogOut className="h-3.5 w-3.5" />
-              <span>Sair</span>
+              <span>Sair da conta</span>
             </button>
           </div>
         </div>
@@ -269,7 +225,7 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
         {/* Cabeçalho */}
         <header className="mb-8">
           <h1 className="font-['Bricolage_Grotesque'] text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl">
-            {isProfessor ? 'Painel do Professor: Avaliações' : 'Minhas Avaliações'}
+            {isProfessor ? 'Painel de Avaliações' : 'Minhas Avaliações'}
           </h1>
           <svg aria-hidden viewBox="0 0 220 14" className="mt-1 h-3 w-44 text-[#FFC53D]" fill="none">
             <path
@@ -281,8 +237,8 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
           </svg>
           <p className="mt-3 max-w-lg text-base font-semibold text-[#4A6B85]">
             {isProfessor
-              ? 'Crie avaliações com IA e acompanhe em tempo real quem respondeu cada questão.'
-              : 'Selecione uma avaliação abaixo para visualizar as questões e enviar suas respostas.'}
+              ? 'Crie avaliações com IA e acompanhe os alunos que responderam cada questão.'
+              : 'Selecione uma avaliação para visualizar os enunciados e enviar suas respostas.'}
           </p>
         </header>
 
@@ -318,7 +274,7 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
             <h2 className="font-['Bricolage_Grotesque'] text-xl font-extrabold">Nada por aqui ainda</h2>
             <p className="mt-1 max-w-xs text-sm font-bold text-[#4A6B85]">
               {isProfessor
-                ? 'Toque em “Gerar avaliação” para criar sua primeira prova com a IA.'
+                ? 'Toque em “Gerar avaliação” para criar uma avaliação com IA.'
                 : 'Seu professor ainda não publicou nenhuma avaliação para a sua turma.'}
             </p>
           </div>

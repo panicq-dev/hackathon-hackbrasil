@@ -9,11 +9,9 @@ import {
   Lock,
   Star,
   LogIn,
-  UserCheck,
-  GraduationCap,
 } from 'lucide-react';
 import { Perfil } from '@/app/src/types/index';
-import { loginUsuario, simularSessao } from '@/app/actions/login';
+import { loginUsuario } from '@/app/actions/login';
 
 const INK = '#0A2E4A';
 
@@ -59,7 +57,6 @@ export default function Login({ onLoginSucesso }: LoginProps) {
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(false);
-  const [simulando, setSimulando] = useState<Perfil | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -75,34 +72,13 @@ export default function Login({ onLoginSucesso }: LoginProps) {
           onLoginSucesso();
         } else {
           router.refresh();
+          window.location.href = '/';
         }
       }
     } catch {
       setErro('Erro inesperado ao realizar login.');
     } finally {
       setCarregando(false);
-    }
-  }
-
-  async function handleSimular(perfilEscolhido: Perfil) {
-    setErro('');
-    setSimulando(perfilEscolhido);
-
-    try {
-      const res = await simularSessao(perfilEscolhido);
-      if (res.erro) {
-        setErro(res.erro);
-      } else if (res.ok) {
-        if (onLoginSucesso) {
-          onLoginSucesso();
-        } else {
-          router.refresh();
-        }
-      }
-    } catch {
-      setErro('Erro ao simular perfil.');
-    } finally {
-      setSimulando(null);
     }
   }
 
@@ -143,37 +119,9 @@ export default function Login({ onLoginSucesso }: LoginProps) {
 
         <p className="mb-6 text-center text-sm font-bold text-[#4A6B85]">
           {perfil === 'professor'
-            ? 'Entre para acessar suas turmas e avaliações.'
-            : 'Entre para continuar seus estudos e atividades.'}
+            ? 'Entre com suas credenciais para gerenciar suas turmas e avaliações.'
+            : 'Entre com suas credenciais para acessar suas atividades e responder avaliações.'}
         </p>
-
-        {/* Bloco de Simulação Rápida */}
-        <div className="mb-6 rounded-[22px] border-2 border-dashed border-[#0A2E4A]/30 bg-[#F0F8FF] p-4 text-center">
-          <p className="mb-2 text-xs font-extrabold uppercase tracking-wider text-[#14507F]">
-            Ambiente de Simulação de Sessões
-          </p>
-          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-            <button
-              type="button"
-              disabled={simulando !== null}
-              onClick={() => handleSimular('aluno')}
-              className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-[#0A2E4A] bg-[#4ECDC4] px-3 py-2.5 font-['Baloo_2'] text-xs font-extrabold text-[#0A2E4A] shadow-[0_3px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5 disabled:opacity-60"
-            >
-              <GraduationCap className="h-4 w-4" />
-              {simulando === 'aluno' ? 'Entrando...' : 'Simular Aluno (Mariano)'}
-            </button>
-
-            <button
-              type="button"
-              disabled={simulando !== null}
-              onClick={() => handleSimular('professor')}
-              className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-[#0A2E4A] bg-[#FFC53D] px-3 py-2.5 font-['Baloo_2'] text-xs font-extrabold text-[#0A2E4A] shadow-[0_3px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5 disabled:opacity-60"
-            >
-              <UserCheck className="h-4 w-4" />
-              {simulando === 'professor' ? 'Entrando...' : 'Simular Professor (Ricardão)'}
-            </button>
-          </div>
-        </div>
 
         <div className="space-y-5 text-sm">
           {/* Perfil */}
