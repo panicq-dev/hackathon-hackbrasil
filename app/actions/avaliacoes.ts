@@ -151,7 +151,7 @@ export async function listarAvaliacoes(): Promise<{
 
     if (sessao.perfil === "aluno") {
       const alunoId = Number(sessao.id);
-      const turmaId = sessao.turmaId ?? "";
+      const turmaId = (sessao.turmaId ?? "").trim();
 
       const res = await pool.query<{
         id: string;
@@ -168,7 +168,11 @@ export async function listarAvaliacoes(): Promise<{
       LEFT JOIN respostas_avaliacoes r
              ON r.avaliacao_id = a.id AND r.aluno_id = $1
           WHERE a.ativo = true
-            AND (a.turma_id = $2 OR a.turma_id IS NULL OR $2 = '')
+            AND (
+              (LENGTH($2) > 0 AND LOWER(TRIM(a.turma_id)) = LOWER($2))
+              OR a.turma_id IS NULL
+              OR TRIM(a.turma_id) = ''
+            )
           ORDER BY a.criado_em DESC`,
         [alunoId, turmaId]
       );
@@ -203,7 +207,11 @@ export async function listarAvaliacoes(): Promise<{
            FROM avaliacoes a
       LEFT JOIN respostas_avaliacoes r
              ON r.avaliacao_id = a.id
-          WHERE (a.professor_id = $1 OR a.professor_id IS NULL)
+          WHERE (
+            a.professor_id = $1
+            OR a.turma_id IN (SELECT id FROM turmas WHERE professor_id = $1)
+            OR (a.professor_id IS NULL AND a.turma_id IS NULL)
+          )
           GROUP BY a.id, a.professor_id, a.turma_id, a.ativo, a.criado_em, a.conteudo
           ORDER BY a.criado_em DESC`,
         [professorId]
@@ -258,12 +266,23 @@ export async function salvarRespostaAluno(
       return { erro: "Esta avaliação não está mais ativa." };
     }
 
-    // Salva ou atualiza a resposta do aluno
+    // Regra de negócio: uma vez respondida, nunca pode ser refeita
+    const jaRespondida = await pool.query<{ existe: boolean }>(
+      `SELECT EXISTS(
+         SELECT 1 FROM respostas_avaliacoes
+         WHERE avaliacao_id = $1 AND aluno_id = $2
+       ) AS existe`,
+      [avaliacaoId, alunoId]
+    );
+
+    if (jaRespondida.rows[0].existe) {
+      return { erro: "Você já respondeu esta avaliação. Não é possível refazê-la." };
+    }
+
+    // Salva a resposta do aluno
     await pool.query(
       `INSERT INTO respostas_avaliacoes (avaliacao_id, aluno_id, respostas, criado_em)
-       VALUES ($1, $2, $3::jsonb, NOW())
-       ON CONFLICT (avaliacao_id, aluno_id)
-       DO UPDATE SET respostas = EXCLUDED.respostas, criado_em = NOW()`,
+       VALUES ($1, $2, $3::jsonb, NOW())`,
       [avaliacaoId, alunoId, JSON.stringify(respostas)]
     );
 

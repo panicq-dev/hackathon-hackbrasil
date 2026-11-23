@@ -97,7 +97,7 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
       onLogout();
     } else {
       router.refresh();
-      window.location.href = '/';
+      window.location.href = '/login';
     }
   }
 
@@ -178,7 +178,7 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
               className="flex cursor-pointer items-center gap-1 rounded-full border-2 border-[#0A2E4A] bg-[#FFE3E3] px-3.5 py-1.5 font-['Baloo_2'] text-xs font-extrabold text-[#8A1F1F] shadow-[0_2px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5"
             >
               <LogOut className="h-3.5 w-3.5" />
-              <span>Sair da conta</span>
+              <span>Sair</span>
             </button>
           </div>
         </div>
@@ -213,12 +213,14 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
           <span className={ROTULO}>Avaliação</span>
         </button>
 
-        <Link href={ROTA_BANCO} aria-label="Banco de Questões" className={FOCO}>
-          <span className={`${BOLINHA} bg-white group-hover:bg-[#FFD3DB]`}>
-            <Library className="h-6 w-6" strokeWidth={2.4} />
-          </span>
-          <span className={ROTULO}>Banco de Questões</span>
-        </Link>
+        {isProfessor && (
+          <Link href={ROTA_BANCO} aria-label="Banco de Questões" className={FOCO}>
+            <span className={`${BOLINHA} bg-white group-hover:bg-[#FFD3DB]`}>
+              <Library className="h-6 w-6" strokeWidth={2.4} />
+            </span>
+            <span className={ROTULO}>Banco de Questões</span>
+          </Link>
+        )}
       </nav>
 
       <div className="relative z-10 mx-auto max-w-5xl">
@@ -340,7 +342,7 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
                     onClick={() => setAvaliacaoSelecionada(item)}
                     className="flex-1 cursor-pointer rounded-xl border-2 border-[#0A2E4A] bg-[#EBF5FF] py-2 text-center font-['Baloo_2'] text-xs font-extrabold text-[#1D63ED] shadow-[0_2px_0_0_#0A2E4A] transition hover:bg-[#BFE3F7] active:translate-y-0.5"
                   >
-                    {isProfessor ? 'Ver Questões' : item.respondidaPorMim ? 'Ver / Editar Respostas' : 'Responder Questão'}
+                    {isProfessor ? 'Ver Questões' : item.respondidaPorMim ? 'Ver Respostas' : 'Responder Questão'}
                   </button>
 
                   {/* Professor: Visualizar quem respondeu e dados de análise */}

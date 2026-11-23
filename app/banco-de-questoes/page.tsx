@@ -10,6 +10,10 @@ async function ConteudoBancoQuestoes() {
     redirect('/login');
   }
 
+  if (usuario.perfil === 'aluno') {
+    redirect('/');
+  }
+
   return <BancoQuestoesView usuario={usuario} />;
 }
 

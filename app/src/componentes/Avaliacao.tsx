@@ -118,6 +118,7 @@ export default function Avaliacao({
   }
 
   const isProfessor = perfilUsuario === 'professor';
+  const jaRespondida = !isProfessor && Boolean(avaliacao?.respondidaPorMim);
 
   return (
     <form onSubmit={handleEnviar} className="space-y-5 font-['Nunito'] text-[#0A2E4A]">
@@ -127,9 +128,13 @@ export default function Avaliacao({
             Avaliação #{avaliacao.id.slice(0, 8)}
           </h2>
           <p className="text-xs font-bold text-[#4A6B85]">
-            {isProfessor
-              ? 'Gabarito e estrutura da avaliação gerada'
-              : 'Responda aos campos de cada questão com atenção.'}
+            {isProfessor ? (
+              'Gabarito e estrutura da avaliação gerada'
+            ) : jaRespondida ? (
+              'Avaliacao concluida. Suas respostas foram registradas e nao podem ser alteradas.'
+            ) : (
+              'Responda aos campos de cada questão com atenção.'
+            )}
           </p>
         </div>
 
@@ -152,7 +157,7 @@ export default function Avaliacao({
             </>
           ) : (
             <span className="rounded-xl border-2 border-[#0A2E4A] bg-[#4ECDC4] px-3 py-1 font-['Baloo_2'] text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A]">
-              Modo Aluno
+              #BoraEstudar!
             </span>
           )}
 
@@ -243,8 +248,15 @@ export default function Avaliacao({
                         type={campo.tipo === 'numero' ? 'text' : 'text'}
                         value={respostas[campo.id] ?? ''}
                         onChange={(e) => handleValorChange(campo.id, e.target.value)}
-                        placeholder="Insira sua resposta aqui..."
-                        className="w-full rounded-[14px] border-2 border-[#0A2E4A] bg-white px-3.5 py-2 text-xs font-semibold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A] placeholder:font-normal placeholder:text-[#5A7C99] focus:outline-none focus:ring-4 focus:ring-[#2496ED]/30"
+                        disabled={jaRespondida}
+                        readOnly={jaRespondida}
+                        placeholder={jaRespondida ? '' : 'Insira sua resposta aqui...'}
+                        className={[
+                          'w-full rounded-[14px] border-2 border-[#0A2E4A] bg-white px-3.5 py-2 text-xs font-semibold text-[#0A2E4A]',
+                          'shadow-[0_2px_0_0_#0A2E4A] placeholder:font-normal placeholder:text-[#5A7C99]',
+                          'focus:outline-none focus:ring-4 focus:ring-[#2496ED]/30',
+                          jaRespondida ? 'cursor-not-allowed opacity-70 bg-[#F4FAFF]' : '',
+                        ].join(' ')}
                       />
                     )}
                   </div>
