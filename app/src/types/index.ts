@@ -1,5 +1,7 @@
-// src/types/questao.ts
+// Perfil
+export type Perfil = 'professor' | 'aluno';
 
+ // Questão
 export interface CampoValidacao {
   id: string;               
   label: string;            
@@ -12,8 +14,17 @@ export interface MapeamentoErro {
   erroProvavel: string;     
 }
 
+export interface Avaliacoes{
+    id: string;
+    questoes: EstruturaQuestao[];
+}
+
 export interface EstruturaQuestao {
   enunciado: string;
   camposValidacao: CampoValidacao[];
   mapeamentoDeErros: MapeamentoErro[];
+}
+// Avaliação
+export interface AvaliacaoProps {
+  avaliacao?: Avaliacoes | null;
 }

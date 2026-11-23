@@ -1,250 +1,208 @@
 'use client';
-import Image from "next/image";
-import { ChevronDown, Link as LinkIcon, Upload, Sparkles, Star } from "lucide-react";
-import { gerarAvaliacao } from "@/app/action";
-import { useState } from "react";
-import { EstruturaQuestao } from "@/app/src/types/Questao"; 
 
-export default function GeradorAvaliativo() {
+import {
+  ChevronDown,
+  Link as LinkIcon,
+  Upload,
+  Sparkles,
+  Star
+} from "lucide-react";
+
+import { useState, useEffect } from "react";
+import { gerarAvaliacao } from "@/app/actions/prompt";
+import { listarTurmasProfessor, TurmaItem } from "@/app/actions/turmas";
+import { Avaliacoes } from "@/app/src/types/index";
+
+type GeradorAvaliativoProps = {
+  onAvaliacaoGerada: (novaAvaliacao: Avaliacoes) => void;
+};
+
+export default function GeradorAvaliativo({ onAvaliacaoGerada }: GeradorAvaliativoProps) {
   const [conteudoPrincipal, setConteudoPrincipal] = useState('');
   const [conteudoDetalhado, setConteudoDetalhado] = useState('');
-  const [resultadoJson, setResultadoJson] = useState<EstruturaQuestao | null>(null);
+  const [quantidadeQuestoes, setQuantidadeQuestoes] = useState(10);
+  const [turmas, setTurmas] = useState<TurmaItem[]>([]);
+  const [turmaSelecionada, setTurmaSelecionada] = useState<string>('');
+  const [carregando, setCarregando] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
+  useEffect(() => {
+    async function carregarTurmas() {
+      try {
+        const res = await listarTurmasProfessor();
+        if (res.turmas && res.turmas.length > 0) {
+          setTurmas(res.turmas);
+          setTurmaSelecionada(res.turmas[0].id);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar turmas:", err);
+      }
+    }
+    carregarTurmas();
+  }, []);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const resposta = await gerarAvaliacao(conteudoPrincipal, conteudoDetalhado);
-    setResultadoJson(resposta);
-    console.log("Resultado:", resposta);
+    setCarregando(true);
+
+    try {
+      const resposta = await gerarAvaliacao(
+        conteudoPrincipal,
+        conteudoDetalhado,
+        quantidadeQuestoes,
+        turmaSelecionada || undefined
+      );
+
+      if (resposta) {
+        onAvaliacaoGerada(resposta);
+        setConteudoPrincipal('');
+        setConteudoDetalhado('');
+      }
+    } finally {
+      setCarregando(false);
+    }
   }
 
   return (
-    <div className="gv-page relative flex min-h-screen flex-1 flex-col items-center justify-center overflow-hidden px-4 py-12">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800;900&display=swap');
+    <form
+      onSubmit={handleSubmit}
+      className="relative w-full rounded-[32px] border-[3px] border-[#0A2E4A] bg-white p-6 shadow-[0_8px_0_0_#0A2E4A]"
+    >
+      {/* Selo */}
+      <div className="absolute -right-2 -top-3 -rotate-6 rounded-2xl border-2 border-[#0A2E4A] bg-[#FF6B6B] px-3 py-1 font-['Baloo_2'] text-xs font-extrabold text-white shadow-[0_3px_0_0_#0A2E4A]">
+        o prof que aprova!
+      </div>
 
-        .gv-page {
-          --ink: #0A2E4A;
-          --blue: #2496ED;
-          --deep: #1D63ED;
-          --sky: #EBF5FF;
-          --sunny: #FFC53D;
-          --coral: #FF6B6B;
-          --mint: #4ECDC4;
-          font-family: 'Nunito', ui-rounded, sans-serif;
-          color: var(--ink);
-          background:
-            radial-gradient(circle at 12% 8%, #BFE3F7 0%, transparent 42%),
-            radial-gradient(circle at 88% 92%, #C6EFE9 0%, transparent 40%),
-            radial-gradient(circle at 78% 12%, #FFEFC2 0%, transparent 30%),
-            #F4FAFF;
-        }
-        .gv-page h1, .gv-title { font-family: 'Baloo 2', 'Nunito', sans-serif; }
+      {/* Título */}
+      <h2 className="text-center font-['Baloo_2'] text-2xl font-extrabold text-[#0A2E4A]">
+        Gerar avaliação
+      </h2>
 
-        .gv-card {
-          background: #fff;
-          border: 3px solid var(--ink);
-          border-radius: 44px;
-          box-shadow: 0 8px 0 0 var(--ink), 0 24px 45px -18px rgba(20, 80, 140, .45);
-          animation: gv-pop .5s cubic-bezier(.34,1.56,.64,1) both;
-        }
-        .gv-sticker {
-          border: 2px solid var(--ink);
-          border-radius: 16px;
-          font-family: 'Baloo 2', sans-serif;
-          font-weight: 800;
-          box-shadow: 0 3px 0 0 var(--ink);
-        }
-        .gv-label {
-          font-family: 'Baloo 2', sans-serif;
-          font-weight: 700;
-          font-size: 1rem;
-          color: #14507F;
-        }
-        .gv-field {
-          width: 100%;
-          border: 3px solid var(--ink);
-          border-radius: 18px;
-          background: var(--sky);
-          padding: .8rem 1rem;
-          font-weight: 600;
-          color: var(--ink);
-          box-shadow: 0 3px 0 0 var(--ink);
-          transition: box-shadow .12s ease, transform .12s ease;
-        }
-        .gv-field::placeholder { font-weight: 400; color: #5A7C99; }
-        .gv-field:focus { outline: none; box-shadow: 0 3px 0 0 var(--ink), 0 0 0 4px rgba(36,150,237,.3); }
-        select.gv-field { appearance: none; -webkit-appearance: none; padding-right: 2.8rem; }
-        .gv-chev {
-          position: absolute; right: .6rem; top: 50%; transform: translateY(-50%);
-          width: 1.75rem; height: 1.75rem; display: flex; align-items: center; justify-content: center;
-          border: 2px solid var(--ink); border-radius: 999px; background: var(--sunny);
-          pointer-events: none;
-        }
-        .gv-press { transition: transform .12s ease, box-shadow .12s ease; }
-        .gv-press:active { transform: translateY(5px); box-shadow: 0 1px 0 0 var(--ink); }
-        .gv-upload {
-          display: inline-flex; align-items: center; gap: .5rem; cursor: pointer;
-          border: 3px dashed var(--ink); border-radius: 18px; background: rgba(255,197,61,.7);
-          padding: .6rem 1rem; font-size: .75rem; font-weight: 800; color: var(--ink);
-          box-shadow: 0 3px 0 0 var(--ink);
-        }
-        .gv-upload:hover { background: var(--sunny); }
-        .gv-btn {
-          display: flex; width: 100%; align-items: center; justify-content: center; gap: .5rem;
-          border: 3px solid var(--ink); border-radius: 18px; color: #fff;
-          font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 1.15rem;
-          padding: .9rem 1rem;
-          background: linear-gradient(160deg, #5AA9E6 0%, var(--blue) 45%, var(--deep) 100%);
-          box-shadow: 0 7px 0 0 #16457E, 0 18px 30px -14px rgba(29,99,237,.65);
-        }
-        .gv-btn:hover { filter: brightness(1.05); }
-        .gv-btn:active { transform: translateY(6px); box-shadow: 0 1px 0 0 #16457E; }
-        .gv-avatar {
-          position: relative; width: 7rem; height: 7rem; border: 3px solid var(--ink);
-          border-radius: 999px; overflow: hidden; background: #FFE9D6;
-        }
-        .gv-halo { position: absolute; inset: -.5rem; border: 2px solid var(--ink); border-radius: 999px; background: rgba(255,197,61,.7); }
-        .gv-bubble { position: absolute; border: 2px solid var(--ink); border-radius: 999px; background: rgba(36,150,237,.25); }
-        @keyframes gv-pop { 0% { transform: scale(.9) translateY(14px); opacity: 0 } 70% { transform: scale(1.02) translateY(-3px); opacity: 1 } 100% { transform: scale(1) translateY(0); opacity: 1 } }
-        @keyframes gv-bob { 0%,100% { transform: translateY(0) rotate(-2deg) } 50% { transform: translateY(-10px) rotate(2deg) } }
-        @keyframes gv-drift { 0%,100% { transform: translateY(0) translateX(0) } 50% { transform: translateY(-16px) translateX(8px) } }
-        @keyframes gv-wiggle { 0%,100% { transform: rotate(-3deg) } 50% { transform: rotate(3deg) } }
-        .gv-anim-bob { animation: gv-bob 4s ease-in-out infinite; }
-        .gv-anim-drift { animation: gv-drift 7s ease-in-out infinite; }
-        .gv-anim-wiggle { animation: gv-wiggle 2.4s ease-in-out infinite; }
-      `}</style>
+      <svg viewBox="0 0 220 14" className="mx-auto mb-2 mt-1 w-40" aria-hidden="true">
+        <path
+          d="M4 9c18-8 34 6 52-1s34 6 52-1 34 6 52-1 34 6 52-1"
+          fill="none"
+          stroke="#2496ED"
+          strokeWidth="5"
+          strokeLinecap="round"
+        />
+      </svg>
 
-      {/* O formulário agora envolve toda a estrutura interativa para o onSubmit funcionar */}
-      <form onSubmit={handleSubmit} className="gv-card relative w-full max-w-xl p-7 sm:p-9">
-        <div className="gv-sticker absolute -right-3 -top-4 -rotate-6 bg-[#FF6B6B] px-3 py-1.5 text-xs text-white">
-          o prof que aprova!
+      <div className="mt-4 space-y-4 text-sm">
+        {/* Turma e questões */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="space-y-1">
+            <label className="font-['Baloo_2'] text-sm font-bold text-[#14507F]">
+              Para qual turma?
+            </label>
+            <div className="relative">
+              <select
+                value={turmaSelecionada}
+                onChange={(e) => setTurmaSelecionada(e.target.value)}
+                className="w-full appearance-none rounded-[18px] border-[3px] border-[#0A2E4A] bg-[#EBF5FF] px-3 py-2.5 pr-10 text-xs font-semibold text-[#0A2E4A] shadow-[0_3px_0_0_#0A2E4A] focus:outline-none"
+              >
+                {turmas.length > 0 ? (
+                  turmas.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.nome} ({t.id})
+                    </option>
+                  ))
+                ) : (
+                  <option value="">Geral / Sem turma específica</option>
+                )}
+              </select>
+              <span className="pointer-events-none absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[#0A2E4A] bg-[#FFC53D]">
+                <ChevronDown className="h-3.5 w-3.5 text-[#0A2E4A]" />
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="font-['Baloo_2'] text-sm font-bold text-[#14507F]">
+              Questões
+            </label>
+            <div className="relative">
+              <select
+                value={quantidadeQuestoes}
+                onChange={(e) => setQuantidadeQuestoes(Number(e.target.value))}
+                className="w-full appearance-none rounded-[18px] border-[3px] border-[#0A2E4A] bg-[#EBF5FF] px-3 py-2.5 pr-10 text-xs font-semibold text-[#0A2E4A] shadow-[0_3px_0_0_#0A2E4A] focus:outline-none"
+              >
+                <option value={5}>5 questões</option>
+                <option value={10}>10 questões</option>
+                <option value={15}>15 questões</option>
+                <option value={20}>20 questões</option>
+              </select>
+              <span className="pointer-events-none absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[#0A2E4A] bg-[#FFC53D]">
+                <ChevronDown className="h-3.5 w-3.5 text-[#0A2E4A]" />
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Avatar */}
-        <div className="mb-5 flex justify-center">
-          <div className="relative">
-            <span className="gv-halo" aria-hidden />
-            <div className="gv-avatar">
-              <div className="relative h-full w-full">
-                {/* Imagem de avatar pra colocar lá pra frente.*/}
-              </div>
-            </div>
-            <span className="gv-sticker absolute -bottom-2 -right-6 rotate-6 bg-[#4ECDC4] px-2.5 py-1 text-xs text-[#0A2E4A]">
-              oi!
+        {/* Conteúdos */}
+        <div className="space-y-1">
+          <label className="font-['Baloo_2'] text-sm font-bold text-[#14507F]">
+            Quais conteúdos?
+          </label>
+          <input
+            type="text"
+            value={conteudoPrincipal}
+            onChange={(e) => setConteudoPrincipal(e.target.value)}
+            placeholder="Ex: Equação do Segundo Grau..."
+            className="w-full rounded-[18px] border-[3px] border-[#0A2E4A] bg-[#EBF5FF] px-3.5 py-2.5 text-xs font-semibold text-[#0A2E4A] shadow-[0_3px_0_0_#0A2E4A] placeholder:font-normal placeholder:text-[#5A7C99] focus:outline-none"
+            required
+          />
+        </div>
+
+        {/* Descrição detalhada */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <label className="font-['Baloo_2'] text-sm font-bold text-[#14507F]">
+              Descrição detalhada
+            </label>
+            <span className="text-xs font-extrabold text-[#4A6B85]">(opcional)</span>
+          </div>
+          <textarea
+            rows={2}
+            value={conteudoDetalhado}
+            onChange={(e) => setConteudoDetalhado(e.target.value)}
+            placeholder="Digite detalhes adicionais..."
+            className="w-full resize-none rounded-[18px] border-[3px] border-[#0A2E4A] bg-[#EBF5FF] px-3.5 py-2.5 text-xs font-semibold text-[#0A2E4A] shadow-[0_3px_0_0_#0A2E4A] placeholder:font-normal placeholder:text-[#5A7C99] focus:outline-none"
+          />
+        </div>
+
+        {/* Anexos */}
+        <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#0A2E4A] bg-[#2496ED]">
+              <LinkIcon className="h-3 w-3 text-white" />
+            </span>
+            <span className="font-['Baloo_2'] text-sm font-bold text-[#14507F]">
+              Referências
             </span>
           </div>
+
+          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-[14px] border-2 border-dashed border-[#0A2E4A] bg-[#FFC53D]/70 px-3 py-1.5 text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A] hover:bg-[#FFC53D]">
+            <Upload className="h-3.5 w-3.5" />
+            <span>Anexar</span>
+            <input type="file" className="hidden" multiple />
+          </label>
         </div>
 
-        <h1 className="gv-title text-center text-3xl font-extrabold">Gerar avaliações</h1>
-        <svg viewBox="0 0 220 14" className="mx-auto mb-2 mt-1 w-48" aria-hidden>
-          <path d="M4 9c18-8 34 6 52-1s34 6 52-1 34 6 52-1 34 6 52-1" fill="none" stroke="#2496ED" strokeWidth="5" strokeLinecap="round" />
-        </svg>
-        <p className="mb-7 text-center text-sm font-bold text-[#4A6B85]">
-          Monte uma avaliação sob medida para sua turma.
+        {/* Botão */}
+        <button
+          type="submit"
+          disabled={carregando}
+          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-[18px] border-[3px] border-[#0A2E4A] bg-gradient-to-br from-[#5AA9E6] via-[#2496ED] to-[#1D63ED] px-4 py-3 font-['Baloo_2'] text-base font-extrabold text-white shadow-[0_5px_0_0_#16457E] transition hover:brightness-105 active:translate-y-1 active:shadow-[0_1px_0_0_#16457E] disabled:opacity-60"
+        >
+          <Sparkles className="h-4 w-4" />
+          {carregando ? 'Gerando...' : 'Gerar avaliação'}
+        </button>
+
+        <p className="flex items-center justify-center gap-1 text-center text-[11px] font-extrabold text-[#4A6B85]">
+          <Star className="h-3 w-3 fill-[#FFC53D] text-[#FFC53D]" />
+          você pode ajustar tudo depois!
         </p>
-
-        <div className="space-y-5 text-sm">
-          {/* Turma e questões */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <label className="gv-label">Para qual turma?</label>
-              <div className="relative">
-                <select className="gv-field">
-                  <option>7º ano A</option>
-                  <option>7º ano B</option>
-                  <option>8º ano A</option>
-                </select>
-                <span className="gv-chev"><ChevronDown className="h-4 w-4 text-[#0A2E4A]" /></span>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="gv-label">Questões</label>
-              <div className="relative">
-                <select className="gv-field">
-                  <option>10 questões</option>
-                  <option>15 questões</option>
-                  <option>20 questões</option>
-                </select>
-                <span className="gv-chev"><ChevronDown className="h-4 w-4 text-[#0A2E4A]" /></span>
-              </div>
-            </div>
-          </div>
-
-          {/* Banco de Questões? */}
-          <div className="space-y-2">
-            <label className="gv-label">Mesclar com Banco de questões?</label>
-            <div className="relative">
-              <select className="gv-field">
-                <option>Sim</option>
-                <option>Não</option>
-              </select>
-              <span className="gv-chev"><ChevronDown className="h-4 w-4 text-[#0A2E4A]" /></span>
-            </div>
-          </div>
-
-          {/* Quais conteúdos? */}
-          <div className="space-y-2 pt-1">
-            <label className="gv-label">Quais conteúdos?</label>
-            <p className="text-xs font-bold text-[#4A6B85]">Selecione ou relate os conteúdos trabalhados.</p>
-            <input
-              type="text"
-              value={conteudoPrincipal}
-              onChange={(e) => setConteudoPrincipal(e.target.value)}
-              placeholder="Ex: Equação do Segundo Grau..."
-              className="gv-field text-xs"
-              required
-            />
-          </div>
-
-          {/* Descrição detalhada*/}
-          <div className="space-y-2 pt-1">
-            <div className="flex items-center justify-between">
-              <label className="gv-label">Descrição mais detalhada</label>
-              <span className="text-xs font-extrabold text-[#4A6B85]">(opcional)</span>
-            </div>
-            <textarea 
-              rows={3} 
-              value={conteudoDetalhado}
-              onChange={(e) => setConteudoDetalhado(e.target.value)}
-              placeholder="Digite detalhes adicionais..." 
-              className="gv-field resize-none text-xs" 
-            />
-          </div>
-
-          {/* Anexos */}
-          <div className="space-y-2 pt-1">
-            <div className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-[#0A2E4A] bg-[#2496ED]">
-                <LinkIcon className="h-3.5 w-3.5 text-white" />
-              </span>
-              <label className="gv-label">Conteúdos relacionados</label>
-              <span className="text-xs font-extrabold text-[#4A6B85]">(opcional)</span>
-            </div>
-            <p className="text-xs font-bold text-[#4A6B85]">
-              Amplie as conexões com o que a turma já sabe ou envie arquivos de referência.
-            </p>
-            <label className="gv-upload gv-press">
-              <Upload className="h-3.5 w-3.5" />
-              <span>Enviar arquivos</span>
-              <input type="file" className="hidden" multiple />
-            </label>
-          </div>
-
-          {/* Submit */}
-          <div className="pt-4">
-            <button type="submit" className="gv-btn gv-press">
-              <Sparkles className="h-5 w-5" />
-              Gerar avaliação
-            </button>
-          </div>
-
-          <p className="flex items-center justify-center gap-1.5 pt-1 text-center text-xs font-extrabold text-[#4A6B85]">
-            <Star className="h-3.5 w-3.5 fill-[#FFC53D] text-[#FFC53D]" />
-            você pode ajustar tudo depois!
-          </p>
-        </div>
-      </form>
-    </div>
+      </div>
+    </form>
   );
 }
