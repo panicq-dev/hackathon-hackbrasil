@@ -121,14 +121,14 @@ export default function DashboardTurmaView({
       <main className="relative z-10 mx-auto max-w-5xl">
         <Link
           href="/dashboard"
-          className="mb-4 inline-flex items-center gap-2 font-['Baloo_2'] text-sm font-bold text-[#4A6B85] hover:text-[#0A2E4A]"
+          className="mb-4 inline-flex items-center gap-2 font-sans text-sm font-bold text-[#4A6B85] hover:text-[#0A2E4A]"
         >
           <ArrowLeft className="h-4 w-4" />
           Minhas turmas
         </Link>
 
         <header className="mb-6">
-          <h1 className="font-['Bricolage_Grotesque'] text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl">
+          <h1 className="font-sans text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl">
             Desempenho da turma
           </h1>
           <svg aria-hidden viewBox="0 0 220 14" className="mt-1 h-3 w-44 text-[#FFC53D]" fill="none">
@@ -150,7 +150,7 @@ export default function DashboardTurmaView({
               <GraduationCap className="h-7 w-7" />
             </span>
             <div className="min-w-0">
-              <h2 className="truncate font-['Bricolage_Grotesque'] text-2xl font-extrabold">
+              <h2 className="truncate font-sans text-2xl font-extrabold">
                 {desempenho?.nome ?? (carregando ? "Carregando turma..." : "Turma")}
               </h2>
               <p className="mt-1 text-xs font-bold text-[#4A6B85]">
@@ -204,10 +204,10 @@ export default function DashboardTurmaView({
         </section>
 
         <div className="mb-6 flex gap-6 border-b-2 border-[#0A2E4A]/15">
-          <span className="border-b-[3px] border-[#FFC53D] pb-2 font-['Baloo_2'] text-sm font-extrabold">
+          <span className="border-b-[3px] border-[#FFC53D] pb-2 font-sans text-sm font-extrabold">
             Alunos <span className="ml-1 text-[#4A6B85]">{desempenho?.alunos.length ?? "—"}</span>
           </span>
-          <span className="pb-2 font-['Baloo_2'] text-sm font-bold text-[#4A6B85]">
+          <span className="pb-2 font-sans text-sm font-bold text-[#4A6B85]">
             Desempenho
           </span>
         </div>
@@ -221,7 +221,7 @@ export default function DashboardTurmaView({
             <button
               type="button"
               onClick={() => setRecarga((valor) => valor + 1)}
-              className="rounded-full border-2 border-[#0A2E4A] bg-white px-3 py-1 font-['Baloo_2'] text-xs font-extrabold"
+              className="rounded-full border-2 border-[#0A2E4A] bg-white px-3 py-1 font-sans text-xs font-extrabold"
             >
               Tente novamente
             </button>
@@ -229,7 +229,7 @@ export default function DashboardTurmaView({
         )}
 
         <section className="mb-7">
-          <h2 className="font-['Bricolage_Grotesque'] text-xl font-extrabold">
+          <h2 className="font-sans text-xl font-extrabold">
             Um olhar sobre a aprendizagem
           </h2>
           <p className="mb-4 mt-1 text-xs font-semibold text-[#4A6B85]">
@@ -241,11 +241,11 @@ export default function DashboardTurmaView({
                 <BarChart3 className="h-5 w-5" />
               </span>
               <div>
-                <p className="text-[10px] font-extrabold text-[#4A6B85]">APROVEITAMENTO MÉDIO</p>
-                <p className="font-['Bricolage_Grotesque'] text-2xl font-extrabold">
+                <p className="text-xs font-extrabold text-[#4A6B85]">APROVEITAMENTO MÉDIO</p>
+                <p className="font-sans text-2xl font-extrabold">
                   {carregando ? "—" : desempenho?.mediaTurma === null ? "—" : `${desempenho?.mediaTurma}%`}
                 </p>
-                <p className="text-[10px] font-semibold text-[#4A6B85]">Média dos alunos com respostas</p>
+                <p className="text-xs font-semibold text-[#4A6B85]">Média dos alunos com respostas</p>
               </div>
             </article>
             <article className="flex items-center gap-3 rounded-[22px] border-[3px] border-[#0A2E4A] bg-white p-4 shadow-[0_4px_0_0_#0A2E4A]">
@@ -253,11 +253,11 @@ export default function DashboardTurmaView({
                 <CheckCircle2 className="h-5 w-5" />
               </span>
               <div>
-                <p className="text-[10px] font-extrabold text-[#4A6B85]">CONSOLIDADOS</p>
-                <p className="font-['Bricolage_Grotesque'] text-2xl font-extrabold">
+                <p className="text-xs font-extrabold text-[#4A6B85]">CONSOLIDADOS</p>
+                <p className="font-sans text-2xl font-extrabold">
                   {carregando ? "—" : desempenho?.consolidados ?? 0}
                 </p>
-                <p className="text-[10px] font-semibold text-[#4A6B85]">80% ou mais</p>
+                <p className="text-xs font-semibold text-[#4A6B85]">80% ou mais</p>
               </div>
             </article>
             <article className="flex items-center gap-3 rounded-[22px] border-[3px] border-[#0A2E4A] bg-white p-4 shadow-[0_4px_0_0_#0A2E4A]">
@@ -265,11 +265,11 @@ export default function DashboardTurmaView({
                 <Users className="h-5 w-5" />
               </span>
               <div>
-                <p className="text-[10px] font-extrabold text-[#4A6B85]">EM DESENVOLVIMENTO</p>
-                <p className="font-['Bricolage_Grotesque'] text-2xl font-extrabold">
+                <p className="text-xs font-extrabold text-[#4A6B85]">EM DESENVOLVIMENTO</p>
+                <p className="font-sans text-2xl font-extrabold">
                   {carregando ? "—" : desempenho?.emDesenvolvimento ?? 0}
                 </p>
-                <p className="text-[10px] font-semibold text-[#4A6B85]">50% a 79%</p>
+                <p className="text-xs font-semibold text-[#4A6B85]">50% a 79%</p>
               </div>
             </article>
             <article className="flex items-center gap-3 rounded-[22px] border-[3px] border-[#0A2E4A] bg-white p-4 shadow-[0_4px_0_0_#0A2E4A]">
@@ -277,11 +277,11 @@ export default function DashboardTurmaView({
                 <GraduationCap className="h-5 w-5" />
               </span>
               <div>
-                <p className="text-[10px] font-extrabold text-[#4A6B85]">PRECISAM DE APOIO</p>
-                <p className="font-['Bricolage_Grotesque'] text-2xl font-extrabold">
+                <p className="text-xs font-extrabold text-[#4A6B85]">PRECISAM DE APOIO</p>
+                <p className="font-sans text-2xl font-extrabold">
                   {carregando ? "—" : desempenho?.precisamDeApoio ?? 0}
                 </p>
-                <p className="text-[10px] font-semibold text-[#4A6B85]">Abaixo de 50%</p>
+                <p className="text-xs font-semibold text-[#4A6B85]">Abaixo de 50%</p>
               </div>
             </article>
           </div>
@@ -290,7 +290,7 @@ export default function DashboardTurmaView({
         <section>
           <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h2 className="font-['Bricolage_Grotesque'] text-xl font-extrabold">Alunos da turma</h2>
+              <h2 className="font-sans text-xl font-extrabold">Alunos da turma</h2>
               <p className="mt-1 text-xs font-semibold text-[#4A6B85]">
                 Cada aluno tem seu ritmo. Acompanhe a evolução nas avaliações do período.
               </p>
@@ -364,7 +364,7 @@ export default function DashboardTurmaView({
               <span className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full border-2 border-[#0A2E4A] bg-[#4ECDC4]">
                 <Users className="h-6 w-6" />
               </span>
-              <h3 className="font-['Baloo_2'] text-lg font-extrabold">
+              <h3 className="font-sans text-lg font-extrabold">
                 {desempenho?.alunos.length === 0 ? "Nenhum aluno cadastrado nesta turma" : "Nenhum aluno encontrado"}
               </h3>
               <p className="mt-1 text-xs font-semibold text-[#4A6B85]">
@@ -383,41 +383,41 @@ export default function DashboardTurmaView({
                   <span className="mx-auto mb-2 grid h-[62px] w-[62px] place-items-center rounded-full border-[3px] border-[#0A2E4A] bg-[#EBF5FF]">
                     <UserRound className="h-8 w-8 text-[#4A6B85]" />
                   </span>
-                  <h3 className="truncate font-['Baloo_2'] text-base font-extrabold" title={aluno.nome}>
+                  <h3 className="truncate font-sans text-base font-extrabold" title={aluno.nome}>
                     {aluno.nome}
                   </h3>
-                  <p className="text-[10px] font-bold text-[#4A6B85]">
+                  <p className="text-xs font-bold text-[#4A6B85]">
                     Matrícula {aluno.matricula}
                   </p>
                   <span
                     className={[
-                      "mt-2 inline-flex rounded-full border border-[#0A2E4A] px-2.5 py-0.5 font-['Baloo_2'] text-[10px] font-extrabold",
+                      "mt-2 inline-flex rounded-full border border-[#0A2E4A] px-2.5 py-0.5 font-sans text-xs font-extrabold",
                       CORES_FAIXA[aluno.faixa],
                     ].join(" ")}
                   >
                     {ROTULOS_FAIXA[aluno.faixa]}
                   </span>
-                  <p className="mt-2 font-['Bricolage_Grotesque'] text-2xl font-extrabold">
+                  <p className="mt-2 font-sans text-2xl font-extrabold">
                     {aluno.percentual === null ? "—" : `${aluno.percentual}%`}
                   </p>
-                  <p className="text-[10px] font-semibold text-[#4A6B85]">
+                  <p className="text-xs font-semibold text-[#4A6B85]">
                     {aluno.percentual === null
                       ? "Sem respostas no período"
                       : `${aluno.totalAcertos} acertos em ${aluno.totalCampos} campos`}
                   </p>
-                  <p className="mt-1 text-[10px] font-semibold text-[#4A6B85]">
+                  <p className="mt-1 text-xs font-semibold text-[#4A6B85]">
                     {aluno.totalRespondidas} de {aluno.totalAvaliacoes} avaliações entregues
                   </p>
                   {aluno.avaliacoes.length > 0 && (
                     <details className="mt-3 border-t border-[#0A2E4A]/15 pt-2 text-left">
-                      <summary className="cursor-pointer text-center font-['Baloo_2'] text-xs font-extrabold text-[#14507F]">
+                      <summary className="cursor-pointer text-center font-sans text-xs font-extrabold text-[#14507F]">
                         Ver acompanhamento
                       </summary>
                       <ul className="mt-2 space-y-2">
                         {aluno.avaliacoes.map((avaliacao) => (
                           <li
                             key={avaliacao.id}
-                            className="flex items-center justify-between gap-2 rounded-xl border border-[#0A2E4A]/20 bg-[#F6FBFF] px-2.5 py-2 text-[10px]"
+                            className="flex items-center justify-between gap-2 rounded-xl border border-[#0A2E4A]/20 bg-[#F6FBFF] px-2.5 py-2 text-xs"
                           >
                             <span className="font-bold">
                               Avaliação {new Date(avaliacao.criadoEm).toLocaleDateString("pt-BR", {
@@ -439,7 +439,7 @@ export default function DashboardTurmaView({
             </div>
           )}
 
-          <p className="mt-5 text-[10px] font-semibold text-[#4A6B85]">
+          <p className="mt-5 text-xs font-semibold text-[#4A6B85]">
             Os percentuais consideram respostas corretas sobre o total de campos de resposta; campos corretos contam proporcionalmente. Alunos sem avaliação respondida ficam sem classificação.
           </p>
         </section>

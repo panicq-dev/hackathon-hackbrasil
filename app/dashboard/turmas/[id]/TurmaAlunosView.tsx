@@ -20,7 +20,7 @@ const BOLINHA =
 
 const ROTULO = [
   'pointer-events-none absolute whitespace-nowrap rounded-full border-2 border-[#0A2E4A] bg-[#0A2E4A] px-3 py-1',
-  "font-['Bricolage_Grotesque'] text-xs font-extrabold text-white",
+  "font-sans text-xs font-extrabold text-white",
   'opacity-0 transition motion-safe:duration-150 group-hover:opacity-100 group-focus-visible:opacity-100',
   'bottom-[calc(100%+12px)] left-1/2 -translate-x-1/2 group-hover:-translate-y-1',
   'md:bottom-auto md:left-[calc(100%+14px)] md:top-1/2 md:-translate-y-1/2 md:translate-x-0 md:group-hover:translate-x-1 md:group-hover:-translate-y-1/2',
@@ -49,12 +49,10 @@ export default function TurmaAlunosView({ usuario, turmaId, turmaNome, alunos }:
     <div
       className={[
         'relative min-h-screen overflow-x-hidden bg-[#F6FBFF]',
-        "font-['Nunito'] text-[#0A2E4A]",
+        "font-sans text-[#0A2E4A]",
         'px-5 pb-32 pt-6 md:pl-32 md:pr-10 md:pb-16',
       ].join(' ')}
     >
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Baloo+2:wght@600;700;800&family=Nunito:wght@600;700;800&display=swap');`}</style>
-
       {/* manchas de cor de fundo */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute -left-24 top-10 h-72 w-72 rounded-[60%_40%_55%_45%] bg-[#BFE3F7]/70 blur-2xl" />
@@ -72,10 +70,10 @@ export default function TurmaAlunosView({ usuario, turmaId, turmaNome, alunos }:
 
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-['Baloo_2'] text-base font-extrabold leading-none text-[#0A2E4A]">
+                <span className="font-sans text-base font-extrabold leading-none text-[#0A2E4A]">
                   {usuario.nome}
                 </span>
-                <span className="rounded-full border border-[#0A2E4A] bg-[#FFEFC2] px-2.5 py-0.5 font-['Baloo_2'] text-[11px] font-extrabold text-[#0A2E4A]">
+                <span className="rounded-full border border-[#0A2E4A] bg-[#FFEFC2] px-2.5 py-0.5 font-sans text-xs font-extrabold text-[#0A2E4A]">
                   Professor
                 </span>
               </div>
@@ -87,7 +85,7 @@ export default function TurmaAlunosView({ usuario, turmaId, turmaNome, alunos }:
             type="button"
             onClick={handleLogout}
             title="Encerrar sessão"
-            className="flex cursor-pointer items-center gap-1 rounded-full border-2 border-[#0A2E4A] bg-[#FFE3E3] px-3.5 py-1.5 font-['Baloo_2'] text-xs font-extrabold text-[#8A1F1F] shadow-[0_2px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5"
+            className="flex cursor-pointer items-center gap-1 rounded-full border-2 border-[#0A2E4A] bg-[#FFE3E3] px-3.5 py-1.5 font-sans text-xs font-extrabold text-[#8A1F1F] shadow-[0_2px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5"
           >
             <LogOut className="h-3.5 w-3.5" />
             <span>Sair</span>
@@ -130,7 +128,7 @@ export default function TurmaAlunosView({ usuario, turmaId, turmaNome, alunos }:
         <div>
           <Link
             href="/dashboard"
-            className="inline-flex cursor-pointer items-center gap-2 rounded-full border-2 border-[#0A2E4A] bg-[#FFC53D] px-4 py-2 font-['Baloo_2'] text-xs font-extrabold text-[#0A2E4A] shadow-[0_3px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-full border-2 border-[#0A2E4A] bg-[#FFC53D] px-4 py-2 font-sans text-xs font-extrabold text-[#0A2E4A] shadow-[0_3px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5"
           >
             <ArrowLeft className="h-4 w-4" />
             <span>Voltar ao Dashboard</span>
@@ -144,36 +142,36 @@ export default function TurmaAlunosView({ usuario, turmaId, turmaNome, alunos }:
                 <span className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#0A2E4A] bg-[#4ECDC4]">
                   <Users className="h-5 w-5 text-[#0A2E4A]" />
                 </span>
-                <span className="rounded-full border-2 border-[#0A2E4A] bg-[#FFEFC2] px-3 py-0.5 font-['Baloo_2'] text-xs font-extrabold text-[#0A2E4A]">
+                <span className="rounded-full border-2 border-[#0A2E4A] bg-[#FFEFC2] px-3 py-0.5 font-sans text-xs font-extrabold text-[#0A2E4A]">
                   Código: {turmaId}
                 </span>
               </div>
-              <h1 className="mt-2 font-['Bricolage_Grotesque'] text-3xl font-extrabold text-[#0A2E4A]">
+              <h1 className="mt-2 font-sans text-3xl font-extrabold text-[#0A2E4A]">
                 {turmaNome}
               </h1>
             </div>
 
             <div className="rounded-[20px] border-2 border-[#0A2E4A] bg-[#EBF5FF] px-4 py-2.5 text-center shadow-[0_3px_0_0_#0A2E4A]">
-              <span className="block font-['Bricolage_Grotesque'] text-2xl font-extrabold text-[#0A2E4A]">
+              <span className="block font-sans text-2xl font-extrabold text-[#0A2E4A]">
                 {alunos.length}
               </span>
-              <span className="font-['Baloo_2'] text-xs font-bold text-[#14507F]">
+              <span className="font-sans text-xs font-bold text-[#14507F]">
                 Alunos Matriculados
               </span>
             </div>
           </div>
 
           <div className="mt-6">
-            <h2 className="font-['Baloo_2'] text-lg font-extrabold text-[#0A2E4A]">
+            <h2 className="font-sans text-lg font-extrabold text-[#0A2E4A]">
               Lista de Alunos
             </h2>
 
             {alunos.length === 0 ? (
               <div className="mt-4 rounded-[24px] border-2 border-dashed border-[#0A2E4A]/30 bg-[#F4FAFF] p-8 text-center">
-                <p className="font-['Nunito'] text-sm font-bold text-[#4A6B85]">
+                <p className="font-sans text-sm font-bold text-[#4A6B85]">
                   Nenhum aluno cadastrado nesta turma ainda.
                 </p>
-                <p className="mt-1 font-['Nunito'] text-xs text-[#5A7C99]">
+                <p className="mt-1 font-sans text-xs text-[#5A7C99]">
                   Compartilhe o código <strong className="text-[#0A2E4A]">{turmaId}</strong> com os estudantes para que eles se cadastrem.
                 </p>
               </div>
@@ -184,10 +182,10 @@ export default function TurmaAlunosView({ usuario, turmaId, turmaNome, alunos }:
                     key={a.id}
                     className="flex items-center gap-3 rounded-[20px] border-2 border-[#0A2E4A] bg-[#F6FBFF] p-3.5 shadow-[0_3px_0_0_#0A2E4A]"
                   >
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-[#0A2E4A] bg-[#FFC53D] font-['Baloo_2'] text-xs font-extrabold text-[#0A2E4A]">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-[#0A2E4A] bg-[#FFC53D] font-sans text-xs font-extrabold text-[#0A2E4A]">
                       {idx + 1}
                     </span>
-                    <span className="font-['Nunito'] text-sm font-bold text-[#0A2E4A]">
+                    <span className="font-sans text-sm font-bold text-[#0A2E4A]">
                       {a.nome}
                     </span>
                   </div>

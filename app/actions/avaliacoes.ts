@@ -203,16 +203,15 @@ export async function listarAvaliacoes(): Promise<{
         total_respostas: string;
       }>(
         `SELECT a.id, a.professor_id, a.turma_id, a.ativo, a.criado_em, a.conteudo,
-                COUNT(r.id)::text as total_respostas
+                (SELECT COUNT(*)::text
+                   FROM respostas_avaliacoes r
+                  WHERE r.avaliacao_id = a.id) as total_respostas
            FROM avaliacoes a
-      LEFT JOIN respostas_avaliacoes r
-             ON r.avaliacao_id = a.id
           WHERE (
             a.professor_id = $1
             OR a.turma_id IN (SELECT id FROM turmas WHERE professor_id = $1)
             OR (a.professor_id IS NULL AND a.turma_id IS NULL)
           )
-          GROUP BY a.id, a.professor_id, a.turma_id, a.ativo, a.criado_em, a.conteudo
           ORDER BY a.criado_em DESC`,
         [professorId]
       );
