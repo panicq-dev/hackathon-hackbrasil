@@ -5,17 +5,24 @@ import Link from "next/link";
 import {
   ArrowLeft,
   ArrowUpDown,
+  Activity,
+  AlertTriangle,
   BarChart3,
   CalendarDays,
   CheckCircle2,
   GraduationCap,
   Search,
+  Target,
+  TrendingUp,
   UserRound,
   Users,
 } from "lucide-react";
-import { obterDesempenhoDaTurma, DesempenhoTurma } from "@/app/actions/turmas";
+import { obterDesempenhoDaTurma } from "@/app/actions/turmas";
+import type { DesempenhoTurma } from "@/app/actions/turmas";
+import { obterDificuldadesDaTurma } from "@/app/actions/alunos";
+import type { DificuldadesTurma } from "@/app/src/lib/estatisticasAluno";
 import { DashboardChrome } from "../../DashboardView";
-import { UsuarioSessao } from "@/app/src/lib/session";
+import type { UsuarioSessao } from "@/app/src/lib/session";
 
 type Props = {
   turmaId: string;
@@ -61,6 +68,10 @@ export default function DashboardTurmaView({
   const [filtroNivel, setFiltroNivel] = useState<FiltroNivel>("todos");
   const [filtroEntrega, setFiltroEntrega] = useState<FiltroEntrega>("todas");
   const [ordenacao, setOrdenacao] = useState<Ordenacao>("nome");
+  const [abaAtiva, setAbaAtiva] = useState<"alunos" | "desempenho">("alunos");
+  const [dificuldades, setDificuldades] = useState<DificuldadesTurma | null>(null);
+  const [carregandoDificuldades, setCarregandoDificuldades] = useState(false);
+  const [erroDificuldades, setErroDificuldades] = useState("");
 
   useEffect(() => {
     let ativo = true;
@@ -93,6 +104,34 @@ export default function DashboardTurmaView({
       ativo = false;
     };
   }, [turmaId, ano, bimestre, recarga]);
+
+  useEffect(() => {
+    let ativo = true;
+    if (abaAtiva !== "desempenho") return;
+
+    Promise.resolve().then(async () => {
+      setCarregandoDificuldades(true);
+      setErroDificuldades("");
+      try {
+        const resultado = await obterDificuldadesDaTurma(turmaId, ano, bimestre);
+        if (!ativo) return;
+        if (resultado.erro || !resultado.dificuldades) {
+          setErroDificuldades(resultado.erro ?? "Não foi possível carregar as dificuldades da turma.");
+          setDificuldades(null);
+          return;
+        }
+        setDificuldades(resultado.dificuldades);
+      } catch {
+        if (ativo) setErroDificuldades("Não foi possível carregar as dificuldades da turma.");
+      } finally {
+        if (ativo) setCarregandoDificuldades(false);
+      }
+    });
+
+    return () => {
+      ativo = false;
+    };
+  }, [abaAtiva, turmaId, ano, bimestre]);
 
   const alunosVisiveis = useMemo(() => {
     if (!desempenho) return [];
@@ -203,13 +242,25 @@ export default function DashboardTurmaView({
           </div>
         </section>
 
-        <div className="mb-6 flex gap-6 border-b-2 border-[#0A2E4A]/15">
-          <span className="border-b-[3px] border-[#FFC53D] pb-2 font-sans text-sm font-extrabold">
+        <div role="tablist" aria-label="Visão da turma" className="mb-6 flex gap-6 border-b-2 border-[#0A2E4A]/15">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={abaAtiva === "alunos"}
+            onClick={() => setAbaAtiva("alunos")}
+            className={`border-b-[3px] pb-2 font-sans text-sm ${abaAtiva === "alunos" ? "border-[#FFC53D] font-extrabold" : "border-transparent font-bold text-[#4A6B85]"}`}
+          >
             Alunos <span className="ml-1 text-[#4A6B85]">{desempenho?.alunos.length ?? "—"}</span>
-          </span>
-          <span className="pb-2 font-sans text-sm font-bold text-[#4A6B85]">
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={abaAtiva === "desempenho"}
+            onClick={() => setAbaAtiva("desempenho")}
+            className={`border-b-[3px] pb-2 font-sans text-sm ${abaAtiva === "desempenho" ? "border-[#FFC53D] font-extrabold" : "border-transparent font-bold text-[#4A6B85]"}`}
+          >
             Desempenho
-          </span>
+          </button>
         </div>
 
         {erro && (
@@ -228,7 +279,7 @@ export default function DashboardTurmaView({
           </div>
         )}
 
-        <section className="mb-7">
+        {abaAtiva === "desempenho" && <section className="mb-7">
           <h2 className="font-sans text-xl font-extrabold">
             Um olhar sobre a aprendizagem
           </h2>
@@ -284,10 +335,137 @@ export default function DashboardTurmaView({
                 <p className="text-xs font-semibold text-[#4A6B85]">Abaixo de 50%</p>
               </div>
             </article>
+            <article className="flex items-center gap-3 rounded-[22px] border-[3px] border-[#0A2E4A] bg-white p-4 shadow-[0_4px_0_0_#0A2E4A]">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[14px] border-2 border-[#0A2E4A] bg-[#C6EFE9]">
+                <Activity className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-xs font-extrabold text-[#4A6B85]">TAXA DE ENTREGA</p>
+                <p className="font-sans text-2xl font-extrabold">
+                  {carregando || !desempenho || desempenho.totalAvaliacoes === 0 || desempenho.alunos.length === 0
+                    ? "—"
+                    : `${Math.round((desempenho.alunos.reduce((total, aluno) => total + aluno.totalRespondidas, 0) / (desempenho.totalAvaliacoes * desempenho.alunos.length)) * 100)}%`}
+                </p>
+                <p className="text-xs font-semibold text-[#4A6B85]">Entregas realizadas no período</p>
+              </div>
+            </article>
+            <article className="flex items-center gap-3 rounded-[22px] border-[3px] border-[#0A2E4A] bg-white p-4 shadow-[0_4px_0_0_#0A2E4A]">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[14px] border-2 border-[#0A2E4A] bg-[#DCECF8]">
+                <GraduationCap className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-xs font-extrabold text-[#4A6B85]">SEM AVALIAÇÃO</p>
+                <p className="font-sans text-2xl font-extrabold">
+                  {carregando ? "—" : desempenho?.alunos.filter((aluno) => aluno.faixa === "sem-avaliacao").length ?? 0}
+                </p>
+                <p className="text-xs font-semibold text-[#4A6B85]">Sem respostas no período</p>
+              </div>
+            </article>
           </div>
-        </section>
+        </section>}
 
-        <section>
+        {abaAtiva === "desempenho" && <section className="mb-7 rounded-[28px] border-[3px] border-[#0A2E4A] bg-white p-5 shadow-[0_5px_0_0_#0A2E4A]">
+          <div className="mb-5">
+            <h2 className="font-sans text-xl font-extrabold">Evolução e foco pedagógico</h2>
+            <p className="mt-1 text-xs font-semibold text-[#4A6B85]">
+              Média por avaliação, habilidades com mais erros e questões que merecem retomada.
+            </p>
+          </div>
+
+          {erroDificuldades ? (
+            <p role="alert" className="rounded-2xl border-2 border-[#0A2E4A] bg-[#FFE3E3] p-4 text-sm font-bold text-[#8A1F1F]">
+              {erroDificuldades}
+            </p>
+          ) : carregandoDificuldades ? (
+            <div className="h-40 animate-pulse rounded-2xl bg-[#EBF5FF]" />
+          ) : (
+            <>
+              <div className="mb-6 rounded-[22px] border-2 border-[#0A2E4A]/20 bg-[#F6FBFF] p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  <h3 className="font-sans font-extrabold">Evolução da média da turma</h3>
+                </div>
+                {!dificuldades?.evolucao.length ? (
+                  <p className="py-8 text-center text-sm font-semibold text-[#4A6B85]">
+                    Ainda não há respostas para montar a evolução neste período.
+                  </p>
+                ) : (
+                  <div className="grid grid-flow-col auto-cols-fr items-end gap-3 overflow-x-auto pt-2">
+                    {dificuldades.evolucao.map((ponto) => (
+                      <div key={ponto.avaliacaoId} className="min-w-[58px] text-center">
+                        <p className="mb-1 text-xs font-extrabold">{ponto.percentual}%</p>
+                        <div className="flex h-32 items-end justify-center rounded-t-xl bg-[#DCECF8]">
+                          <div
+                            role="img"
+                            aria-label={`Média da avaliação: ${ponto.percentual}%`}
+                            className="w-8 rounded-t-lg border-2 border-b-0 border-[#0A2E4A] bg-[#4ECDC4]"
+                            style={{ height: `${Math.max(ponto.percentual, 4)}%` }}
+                          />
+                        </div>
+                        <p className="mt-2 text-[10px] font-bold text-[#4A6B85]">
+                          {new Date(ponto.criadoEm).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="grid gap-5 lg:grid-cols-2">
+                <div className="rounded-[22px] border-2 border-[#0A2E4A]/20 p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Target className="h-5 w-5" />
+                    <h3 className="font-sans font-extrabold">Causas raiz a trabalhar</h3>
+                  </div>
+                  {!dificuldades?.causasRaiz.length ? (
+                    <p className="py-5 text-sm font-semibold text-[#4A6B85]">Nenhuma dificuldade recorrente identificada.</p>
+                  ) : (
+                    <ul className="space-y-3">
+                      {dificuldades.causasRaiz.slice(0, 6).map((causa) => {
+                        const maximo = dificuldades.causasRaiz[0].totalErros;
+                        return (
+                          <li key={causa.causaRaiz}>
+                            <div className="mb-1 flex justify-between gap-2 text-xs font-bold">
+                              <span>{causa.causaRaiz}</span><span>{causa.totalErros} erros</span>
+                            </div>
+                            <div className="h-2 overflow-hidden rounded-full bg-[#EBF5FF]">
+                              <div className="h-full rounded-full bg-[#FF8A65]" style={{ width: `${(causa.totalErros / maximo) * 100}%` }} />
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+
+                <div className="rounded-[22px] border-2 border-[#0A2E4A]/20 p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5" />
+                    <h3 className="font-sans font-extrabold">Questões críticas</h3>
+                  </div>
+                  {!dificuldades?.questoesCriticas.length ? (
+                    <p className="py-5 text-sm font-semibold text-[#4A6B85]">Sem questões com erros neste período.</p>
+                  ) : (
+                    <ul className="max-h-72 space-y-2 overflow-y-auto">
+                      {dificuldades.questoesCriticas.slice(0, 8).map((questao) => (
+                        <li key={`${questao.avaliacaoId}-${questao.numeroQuestao}`} className="rounded-xl bg-[#FFF6DF] p-3 text-xs">
+                          <div className="flex justify-between gap-2 font-extrabold">
+                            <span>Questão {questao.numeroQuestao}</span>
+                            <span>{questao.percentualErros}% de erros</span>
+                          </div>
+                          <p className="mt-1 line-clamp-2 font-semibold text-[#4A6B85]">{questao.enunciado}</p>
+                          <p className="mt-1 text-[#4A6B85]">{questao.totalErros} erros em {questao.totalTentativas} respostas de campo</p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </section>}
+
+        {abaAtiva === "alunos" && <section>
           <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
             <div>
               <h2 className="font-sans text-xl font-extrabold">Alunos da turma</h2>
@@ -380,34 +558,40 @@ export default function DashboardTurmaView({
                   key={aluno.id}
                   className="rounded-[24px] border-[3px] border-[#0A2E4A] bg-white p-4 text-center shadow-[0_5px_0_0_#0A2E4A]"
                 >
-                  <span className="mx-auto mb-2 grid h-[62px] w-[62px] place-items-center rounded-full border-[3px] border-[#0A2E4A] bg-[#EBF5FF]">
-                    <UserRound className="h-8 w-8 text-[#4A6B85]" />
-                  </span>
-                  <h3 className="truncate font-sans text-base font-extrabold" title={aluno.nome}>
-                    {aluno.nome}
-                  </h3>
-                  <p className="text-xs font-bold text-[#4A6B85]">
-                    Matrícula {aluno.matricula}
-                  </p>
-                  <span
-                    className={[
-                      "mt-2 inline-flex rounded-full border border-[#0A2E4A] px-2.5 py-0.5 font-sans text-xs font-extrabold",
-                      CORES_FAIXA[aluno.faixa],
-                    ].join(" ")}
+                  <Link
+                    href={`/dashboard/turmas/${encodeURIComponent(turmaId)}/alunos/${aluno.id}?ano=${ano}&bimestre=${bimestre ?? "ano"}`}
+                    className="block rounded-xl outline-none transition hover:bg-[#F6FBFF] focus-visible:ring-4 focus-visible:ring-[#1D63ED]/40"
                   >
-                    {ROTULOS_FAIXA[aluno.faixa]}
-                  </span>
-                  <p className="mt-2 font-sans text-2xl font-extrabold">
-                    {aluno.percentual === null ? "—" : `${aluno.percentual}%`}
-                  </p>
-                  <p className="text-xs font-semibold text-[#4A6B85]">
-                    {aluno.percentual === null
-                      ? "Sem respostas no período"
-                      : `${aluno.totalAcertos} acertos em ${aluno.totalCampos} campos`}
-                  </p>
-                  <p className="mt-1 text-xs font-semibold text-[#4A6B85]">
-                    {aluno.totalRespondidas} de {aluno.totalAvaliacoes} avaliações entregues
-                  </p>
+                    <span className="mx-auto mb-2 grid h-[62px] w-[62px] place-items-center rounded-full border-[3px] border-[#0A2E4A] bg-[#EBF5FF]">
+                      <UserRound className="h-8 w-8 text-[#4A6B85]" />
+                    </span>
+                    <h3 className="truncate font-sans text-base font-extrabold" title={aluno.nome}>
+                      {aluno.nome}
+                    </h3>
+                    <p className="text-xs font-bold text-[#4A6B85]">
+                      Matrícula {aluno.matricula}
+                    </p>
+                    <span
+                      className={[
+                        "mt-2 inline-flex rounded-full border border-[#0A2E4A] px-2.5 py-0.5 font-sans text-xs font-extrabold",
+                        CORES_FAIXA[aluno.faixa],
+                      ].join(" ")}
+                    >
+                      {ROTULOS_FAIXA[aluno.faixa]}
+                    </span>
+                    <p className="mt-2 font-sans text-2xl font-extrabold">
+                      {aluno.percentual === null ? "—" : `${aluno.percentual}%`}
+                    </p>
+                    <p className="text-xs font-semibold text-[#4A6B85]">
+                      {aluno.percentual === null
+                        ? "Sem respostas no período"
+                        : `${aluno.totalAcertos} acertos em ${aluno.totalCampos} campos`}
+                    </p>
+                    <p className="mt-1 text-xs font-semibold text-[#4A6B85]">
+                      {aluno.totalRespondidas} de {aluno.totalAvaliacoes} avaliações entregues
+                    </p>
+                    <p className="mt-2 text-xs font-extrabold text-[#14507F]">Abrir estatísticas →</p>
+                  </Link>
                   {aluno.avaliacoes.length > 0 && (
                     <details className="mt-3 border-t border-[#0A2E4A]/15 pt-2 text-left">
                       <summary className="cursor-pointer text-center font-sans text-xs font-extrabold text-[#14507F]">
@@ -442,7 +626,7 @@ export default function DashboardTurmaView({
           <p className="mt-5 text-xs font-semibold text-[#4A6B85]">
             Os percentuais consideram respostas corretas sobre o total de campos de resposta; campos corretos contam proporcionalmente. Alunos sem avaliação respondida ficam sem classificação.
           </p>
-        </section>
+        </section>}
       </main>
     </DashboardChrome>
   );

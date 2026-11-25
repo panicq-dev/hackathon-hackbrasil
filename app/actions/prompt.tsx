@@ -136,8 +136,13 @@ export async function gerarAvaliacao(
             textoResposta = interacao.text;
           }
           break;
-        } catch (erroGemini: any) {
-          const status = erroGemini?.status ?? erroGemini?.httpStatus ?? erroGemini?.code;
+        } catch (erroGemini: unknown) {
+          const detalheErro = erroGemini as {
+            status?: number | string;
+            httpStatus?: number | string;
+            code?: number | string;
+          };
+          const status = detalheErro.status ?? detalheErro.httpStatus ?? detalheErro.code;
           const ehUltimoGemini = modelo === MODELOS_GEMINI[MODELOS_GEMINI.length - 1];
           if ((status === 503 || status === 429) && !ehUltimoGemini) {
             console.warn(`Gemini ${modelo} indisponivel (${status}), tentando proximo...`);
