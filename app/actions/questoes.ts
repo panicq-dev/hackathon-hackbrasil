@@ -1,5 +1,6 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { pool } from '@/app/src/db';
 import { obterSessao } from '@/app/src/lib/session';
 import { EstruturaQuestao, QuestaoComunidade } from '@/app/src/types';
@@ -62,6 +63,7 @@ export async function publicarQuestaoComunidade(
         [materiaTagId, questao.bancoId, professorId]
       );
       if (resUpdate.rows.length > 0) {
+        revalidatePath('/banco-de-questoes');
         return { sucesso: true, questaoId: resUpdate.rows[0].id };
       }
     }
@@ -74,6 +76,7 @@ export async function publicarQuestaoComunidade(
       [professorId, materiaTagId, JSON.stringify(questao)]
     );
 
+    revalidatePath('/banco-de-questoes');
     return { sucesso: true, questaoId: resInsert.rows[0].id };
   } catch (error) {
     console.error('Erro ao publicar questão:', error);
@@ -100,6 +103,7 @@ export async function despublicarQuestaoComunidade(
       [questaoId, professorId]
     );
 
+    revalidatePath('/banco-de-questoes');
     return { sucesso: true };
   } catch (error) {
     console.error('Erro ao despublicar questão:', error);
@@ -181,7 +185,10 @@ export async function listarQuestoesComunidade(filtros?: {
     sql += ` GROUP BY q.id, q.questao, q.criado_em, q.professor_id, p.nome, m.tag`;
 
     if (filtros?.ordenarPor === 'populares') {
-      sql += ` ORDER BY ("likesCount" - "dislikesCount") DESC, q.criado_em DESC`;
+      sql += ` ORDER BY
+        COUNT(CASE WHEN r.tipo = 'like' THEN 1 END) -
+        COUNT(CASE WHEN r.tipo = 'dislike' THEN 1 END) DESC,
+        q.criado_em DESC`;
     } else {
       sql += ` ORDER BY q.criado_em DESC`;
     }
@@ -398,6 +405,18 @@ export async function criarAvaliacaoComQuestoesBanco(
     const conteudo = { questoes };
     const professorId = Number(sessao.id);
     const turmaFinal = turmaId && turmaId.trim() ? turmaId.trim() : null;
+    if (turmaFinal) {
+      const turmaAtiva = await pool.query(
+        `SELECT id
+           FROM turmas
+          WHERE id = $1 AND professor_id = $2 AND arquivada_em IS NULL
+          LIMIT 1`,
+        [turmaFinal, professorId]
+      );
+      if (turmaAtiva.rowCount === 0) {
+        return { sucesso: false, erro: 'Turma não encontrada ou inativa.' };
+      }
+    }
 
     const resInsert = await pool.query(
       `INSERT INTO avaliacoes (conteudo, professor_id, turma_id)

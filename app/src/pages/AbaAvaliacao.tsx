@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -15,6 +15,7 @@ import {
   Users,
   ShieldCheck,
   GraduationCap,
+  Trash2,
 } from 'lucide-react';
 import { Avaliacoes } from '@/app/src/types/index';
 import GeradorAvaliativo from '@/app/src/componentes/GeradorAvaliativo';
@@ -29,6 +30,7 @@ import {
   obterUsuarioAtual,
 } from '@/app/actions/login';
 import { UsuarioSessao } from '@/app/src/lib/session';
+import { enviarParaLixeira } from '@/app/actions/lixeira';
 
 const ROTA_DASHBOARD = '/dashboard';
 const ROTA_BANCO = '/banco-de-questoes';
@@ -44,7 +46,7 @@ const BOLINHA =
 
 const ROTULO = [
   'pointer-events-none absolute whitespace-nowrap rounded-full border-2 border-[#0A2E4A] bg-[#0A2E4A] px-3 py-1',
-  "font-['Bricolage_Grotesque'] text-xs font-extrabold text-white",
+  "font-sans text-xs font-extrabold text-white",
   'opacity-0 transition motion-safe:duration-150 group-hover:opacity-100 group-focus-visible:opacity-100',
   'bottom-[calc(100%+12px)] left-1/2 -translate-x-1/2 group-hover:-translate-y-1',
   'md:bottom-auto md:left-[calc(100%+14px)] md:top-1/2 md:-translate-y-1/2 md:translate-x-0 md:group-hover:translate-x-1 md:group-hover:-translate-y-1/2',
@@ -66,30 +68,44 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
   const [avaliacaoRespostasAberta, setAvaliacaoRespostasAberta] = useState<string | null>(null);
   const [geradorAberto, setGeradorAberto] = useState(false);
   const [carregando, setCarregando] = useState(true);
+  const [erroCarregamento, setErroCarregamento] = useState('');
+  const [avaliacaoEmOperacao, setAvaliacaoEmOperacao] = useState<string | null>(null);
 
-  async function carregarDados() {
+  const carregarDados = useCallback(async () => {
     setCarregando(true);
+    setErroCarregamento('');
     try {
-      let userAtual = usuario;
+      let userAtual = usuarioInicial;
       if (!userAtual) {
         userAtual = await obterUsuarioAtual();
         setUsuario(userAtual);
       }
 
       const res = await listarAvaliacoes();
-      if (res.avaliacoes) {
-        setAvaliacoes(res.avaliacoes);
+      if (res.erro) {
+        setAvaliacoes([]);
+        setErroCarregamento(res.erro);
+      } else {
+        setAvaliacoes(res.avaliacoes ?? []);
       }
     } catch (e) {
       console.error('Erro ao buscar dados:', e);
+      setErroCarregamento('Não foi possível carregar as avaliações.');
     } finally {
       setCarregando(false);
     }
-  }
+  }, [usuarioInicial]);
 
   useEffect(() => {
-    carregarDados();
-  }, []);
+    let cancelado = false;
+    Promise.resolve().then(() => {
+      if (!cancelado) void carregarDados();
+    });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [carregarDados]);
 
   async function handleLogout() {
     await logoutUsuario();
@@ -97,7 +113,7 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
       onLogout();
     } else {
       router.refresh();
-      window.location.href = '/login';
+      router.push('/login');
     }
   }
 
@@ -113,18 +129,37 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
     setGeradorAberto(false);
   }
 
+  async function arquivarAvaliacao(item: AvaliacaoResumida) {
+    if (!isProfessor) return;
+    if (!window.confirm(`Mover a avaliação #${item.id.slice(0, 8)} para a lixeira? As respostas serão mantidas até a exclusão permanente.`)) return;
+    setAvaliacaoEmOperacao(item.id);
+    setErroCarregamento('');
+    try {
+      const resultado = await enviarParaLixeira('avaliacao', item.id);
+      if (resultado.erro) {
+        setErroCarregamento(resultado.erro);
+      } else {
+        setAvaliacoes((atuais) => atuais.filter((avaliacao) => avaliacao.id !== item.id));
+        setAvaliacaoSelecionada((atual) => atual?.id === item.id ? null : atual);
+        setAvaliacaoRespostasAberta((atual) => atual === item.id ? null : atual);
+      }
+    } catch (erro) {
+      setErroCarregamento(erro instanceof Error ? erro.message : 'Não foi possível mover a avaliação para a lixeira.');
+    } finally {
+      setAvaliacaoEmOperacao(null);
+    }
+  }
+
   const isProfessor = usuario?.perfil === 'professor';
 
   return (
     <div
       className={[
-        'relative min-h-screen overflow-x-hidden bg-[#F6FBFF]',
-        "font-['Nunito'] text-[#0A2E4A]",
+        'relative min-h-screen overflow-x-clip bg-[#F6FBFF]',
+        "font-sans text-[#0A2E4A]",
         'px-5 pb-32 pt-6 md:pl-32 md:pr-10 md:pb-16',
       ].join(' ')}
     >
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Nunito:wght@600;700;800&display=swap');`}</style>
-
       {/* manchas de cor de fundo */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute -left-24 top-10 h-72 w-72 rounded-[60%_40%_55%_45%] bg-[#BFE3F7]/70 blur-2xl" />
@@ -150,11 +185,11 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
 
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-['Baloo_2'] text-base font-extrabold leading-none text-[#0A2E4A]">
+                <span className="font-sans text-base font-extrabold leading-none text-[#0A2E4A]">
                   {usuario?.nome ?? 'Usuário'}
                 </span>
                 <span
-                  className={`rounded-full border border-[#0A2E4A] px-2.5 py-0.5 font-['Baloo_2'] text-[11px] font-extrabold ${
+                  className={`rounded-full border border-[#0A2E4A] px-2.5 py-0.5 font-sans text-xs font-extrabold ${
                     isProfessor ? 'bg-[#FFEFC2] text-[#0A2E4A]' : 'bg-[#D1F2D9] text-[#0F5132]'
                   }`}
                 >
@@ -175,7 +210,7 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
               type="button"
               onClick={handleLogout}
               title="Encerrar sessão"
-              className="flex cursor-pointer items-center gap-1 rounded-full border-2 border-[#0A2E4A] bg-[#FFE3E3] px-3.5 py-1.5 font-['Baloo_2'] text-xs font-extrabold text-[#8A1F1F] shadow-[0_2px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5"
+              className="flex cursor-pointer items-center gap-1 rounded-full border-2 border-[#0A2E4A] bg-[#FFE3E3] px-3.5 py-1.5 font-sans text-xs font-extrabold text-[#8A1F1F] shadow-[0_2px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5"
             >
               <LogOut className="h-3.5 w-3.5" />
               <span>Sair</span>
@@ -221,12 +256,21 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
             <span className={ROTULO}>Banco de Questões</span>
           </Link>
         )}
+
+        {isProfessor && (
+          <Link href="/lixeira" aria-label="Lixeira" className={FOCO}>
+            <span className={`${BOLINHA} bg-[#FFE3E3] text-red-700 group-hover:bg-[#FFD3DB]`}>
+              <Trash2 className="h-6 w-6" strokeWidth={2.4} />
+            </span>
+            <span className={ROTULO}>Lixeira</span>
+          </Link>
+        )}
       </nav>
 
       <div className="relative z-10 mx-auto max-w-5xl">
         {/* Cabeçalho */}
         <header className="mb-8">
-          <h1 className="font-['Bricolage_Grotesque'] text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl">
+          <h1 className="font-sans text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl">
             {isProfessor ? 'Painel de Avaliações' : 'Minhas Avaliações'}
           </h1>
           <svg aria-hidden viewBox="0 0 220 14" className="mt-1 h-3 w-44 text-[#FFC53D]" fill="none">
@@ -247,7 +291,7 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
         {carregando ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#0A2E4A] border-t-[#FFC53D]" />
-            <p className="mt-3 font-['Baloo_2'] text-base font-bold text-[#4A6B85]">
+            <p className="mt-3 font-sans text-base font-bold text-[#4A6B85]">
               Carregando avaliações...
             </p>
           </div>
@@ -256,7 +300,7 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
             <button
               type="button"
               onClick={() => setAvaliacaoSelecionada(null)}
-              className="mb-5 inline-flex cursor-pointer items-center gap-2 rounded-full border-2 border-[#0A2E4A] bg-[#FFC53D] px-4 py-2 font-['Bricolage_Grotesque'] text-xs font-extrabold shadow-[0_3px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5"
+              className="mb-5 inline-flex cursor-pointer items-center gap-2 rounded-full border-2 border-[#0A2E4A] bg-[#FFC53D] px-4 py-2 font-sans text-xs font-extrabold shadow-[0_3px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5"
             >
               <ArrowLeft className="h-4 w-4" />
               Voltar para avaliações
@@ -268,12 +312,19 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
               onRespostasEnviadas={carregarDados}
             />
           </div>
+        ) : erroCarregamento ? (
+          <div
+            role="alert"
+            className="rounded-[24px] border-[3px] border-[#0A2E4A] bg-[#FFE3E3] p-5 text-sm font-bold text-[#8A1F1F] shadow-[0_4px_0_0_#0A2E4A]"
+          >
+            {erroCarregamento}
+          </div>
         ) : avaliacoes.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-[44px_36px_48px_38px] border-[3px] border-dashed border-[#0A2E4A] bg-white/80 p-12 text-center">
             <div className="mb-4 flex h-14 w-14 -rotate-6 items-center justify-center rounded-full border-[3px] border-[#0A2E4A] bg-[#4ECDC4]">
               <FileText className="h-6 w-6" />
             </div>
-            <h2 className="font-['Bricolage_Grotesque'] text-xl font-extrabold">Nada por aqui ainda</h2>
+            <h2 className="font-sans text-xl font-extrabold">Nada por aqui ainda</h2>
             <p className="mt-1 max-w-xs text-sm font-bold text-[#4A6B85]">
               {isProfessor
                 ? 'Toque em “Gerar avaliação” para criar uma avaliação com IA.'
@@ -326,7 +377,7 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
                     </div>
                   </div>
 
-                  <h3 className="font-['Bricolage_Grotesque'] text-xl font-extrabold">
+                  <h3 className="font-sans text-xl font-extrabold">
                     Avaliação #{item.id ? item.id.slice(0, 8) : idx + 1}
                   </h3>
 
@@ -340,21 +391,35 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
                   <button
                     type="button"
                     onClick={() => setAvaliacaoSelecionada(item)}
-                    className="flex-1 cursor-pointer rounded-xl border-2 border-[#0A2E4A] bg-[#EBF5FF] py-2 text-center font-['Baloo_2'] text-xs font-extrabold text-[#1D63ED] shadow-[0_2px_0_0_#0A2E4A] transition hover:bg-[#BFE3F7] active:translate-y-0.5"
+                    className="flex-1 cursor-pointer rounded-xl border-2 border-[#0A2E4A] bg-[#EBF5FF] py-2 text-center font-sans text-xs font-extrabold text-[#1D63ED] shadow-[0_2px_0_0_#0A2E4A] transition hover:bg-[#BFE3F7] active:translate-y-0.5"
                   >
                     {isProfessor ? 'Ver Questões' : item.respondidaPorMim ? 'Ver Respostas' : 'Responder Questão'}
                   </button>
 
                   {/* Professor: Visualizar quem respondeu e dados de análise */}
                   {isProfessor && (
-                    <button
-                      type="button"
-                      onClick={() => setAvaliacaoRespostasAberta(item.id)}
-                      className="flex cursor-pointer items-center justify-center gap-1 rounded-xl border-2 border-[#0A2E4A] bg-[#FFC53D] px-3 py-2 font-['Baloo_2'] text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5"
-                    >
-                      <Users className="h-3.5 w-3.5" />
-                      <span>Quem respondeu ({item.totalRespostas ?? 0})</span>
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setAvaliacaoRespostasAberta(item.id)}
+                        className="flex cursor-pointer items-center justify-center gap-1 rounded-xl border-2 border-[#0A2E4A] bg-[#FFC53D] px-3 py-2 font-sans text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5"
+                      >
+                        <Users className="h-3.5 w-3.5" />
+                        <span>Quem respondeu ({item.totalRespostas ?? 0})</span>
+                      </button>
+                      {(item.professorId === Number(usuario?.id) || Boolean(item.turmaId)) && (
+                        <button
+                          type="button"
+                          aria-label={`Mover avaliação ${item.id.slice(0, 8)} para a lixeira`}
+                          title="Mover avaliação para a lixeira"
+                          disabled={avaliacaoEmOperacao === item.id}
+                          onClick={() => void arquivarAvaliacao(item)}
+                          className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-red-700 bg-red-100 text-red-700 shadow-[0_2px_0_0_#991B1B] transition hover:bg-red-200 disabled:opacity-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -383,7 +448,7 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
           <button
             type="button"
             onClick={() => setGeradorAberto((prev) => !prev)}
-            className="flex cursor-pointer items-center gap-2 rounded-full border-[3px] border-[#0A2E4A] bg-[linear-gradient(160deg,#5AA9E6_0%,#2496ED_45%,#1D63ED_100%)] px-6 py-3.5 font-['Bricolage_Grotesque'] text-base font-extrabold text-white shadow-[0_6px_0_0_#16457E] transition hover:brightness-105 active:translate-y-1 active:shadow-[0_2px_0_0_#16457E]"
+            className="flex cursor-pointer items-center gap-2 rounded-full border-[3px] border-[#0A2E4A] bg-[linear-gradient(160deg,#5AA9E6_0%,#2496ED_45%,#1D63ED_100%)] px-6 py-3.5 font-sans text-base font-extrabold text-white shadow-[0_6px_0_0_#16457E] transition hover:brightness-105 active:translate-y-1 active:shadow-[0_2px_0_0_#16457E]"
           >
             {geradorAberto ? (
               <>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Send, CheckCircle2, AlertCircle, Info, Sparkles, Share2, Check, Globe } from 'lucide-react';
 import { Avaliacoes, EstruturaQuestao } from '@/app/src/types/index';
 import { salvarRespostaAluno } from '@/app/actions/avaliacoes';
@@ -30,6 +30,12 @@ export default function Avaliacao({
     avaliacao?.respondidaPorMim ? 'Você já enviou suas respostas para esta avaliação.' : ''
   );
   const [erro, setErro] = useState('');
+
+  useEffect(() => {
+    if (!mensagemSucesso || mensagemSucesso === 'Você já enviou suas respostas para esta avaliação.') return;
+    const timeout = window.setTimeout(() => setMensagemSucesso(''), 4000);
+    return () => window.clearTimeout(timeout);
+  }, [mensagemSucesso]);
   
   // Rastreia questões publicadas na comunidade localmente
   const [publicadas, setPublicadas] = useState<Record<number, boolean>>({});
@@ -121,10 +127,10 @@ export default function Avaliacao({
   const jaRespondida = !isProfessor && Boolean(avaliacao?.respondidaPorMim);
 
   return (
-    <form onSubmit={handleEnviar} className="space-y-5 font-['Nunito'] text-[#0A2E4A]">
+    <form onSubmit={handleEnviar} className="space-y-5 font-sans text-[#0A2E4A]">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-[#0A2E4A]/15 pb-4">
         <div>
-          <h2 className="font-['Baloo_2'] text-2xl font-extrabold text-[#0A2E4A]">
+          <h2 className="font-sans text-2xl font-extrabold text-[#0A2E4A]">
             Avaliação #{avaliacao.id.slice(0, 8)}
           </h2>
           <p className="text-xs font-bold text-[#4A6B85]">
@@ -145,23 +151,23 @@ export default function Avaliacao({
                 type="button"
                 onClick={handlePublicarTodas}
                 disabled={publicandoTodas}
-                className="flex cursor-pointer items-center gap-1.5 rounded-full border-2 border-[#0A2E4A] bg-[#FFC53D] px-3.5 py-1.5 font-['Baloo_2'] text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5 disabled:opacity-60"
+                className="flex cursor-pointer items-center gap-1.5 rounded-full border-2 border-[#0A2E4A] bg-[#FFC53D] px-3.5 py-1.5 font-sans text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5 disabled:opacity-60"
               >
                 <Globe className="h-3.5 w-3.5 text-[#0A2E4A]" />
                 <span>{publicandoTodas ? 'Publicando todas...' : 'Publicar todas no Banco'}</span>
               </button>
 
-              <span className="rounded-xl border-2 border-[#0A2E4A] bg-[#FFEFC2] px-3 py-1 font-['Baloo_2'] text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A]">
+              <span className="rounded-xl border-2 border-[#0A2E4A] bg-[#FFEFC2] px-3 py-1 font-sans text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A]">
                 Modo Professor
               </span>
             </>
           ) : (
-            <span className="rounded-xl border-2 border-[#0A2E4A] bg-[#4ECDC4] px-3 py-1 font-['Baloo_2'] text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A]">
+            <span className="rounded-xl border-2 border-[#0A2E4A] bg-[#4ECDC4] px-3 py-1 font-sans text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A]">
               #BoraEstudar!
             </span>
           )}
 
-          <span className="rounded-xl border-2 border-[#0A2E4A] bg-[#BFE3F7] px-3 py-1 font-['Baloo_2'] text-xs font-extrabold shadow-[0_2px_0_0_#0A2E4A]">
+          <span className="rounded-xl border-2 border-[#0A2E4A] bg-[#BFE3F7] px-3 py-1 font-sans text-xs font-extrabold shadow-[0_2px_0_0_#0A2E4A]">
             {avaliacao.questoes.length} questões
           </span>
         </div>
@@ -195,14 +201,14 @@ export default function Avaliacao({
             className="rounded-[22px] border-[3px] border-[#0A2E4A] bg-[#F4FAFF] p-5 shadow-[0_4px_0_0_#0A2E4A]"
           >
             <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
-              <h3 className="font-['Baloo_2'] text-base font-extrabold leading-snug text-[#14507F] flex-1">
+              <h3 className="font-sans text-base font-extrabold leading-snug text-[#14507F] flex-1">
                 {index + 1}. {questao.enunciado}
               </h3>
 
               {isProfessor && (
                 <div className="shrink-0">
                   {jaPublicada ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-[#0A2E4A] bg-[#D1F2D9] px-3 py-1 font-['Baloo_2'] text-xs font-extrabold text-[#0F5132] shadow-[0_2px_0_0_#0A2E4A]">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-[#0A2E4A] bg-[#D1F2D9] px-3 py-1 font-sans text-xs font-extrabold text-[#0F5132] shadow-[0_2px_0_0_#0A2E4A]">
                       <Check className="h-3.5 w-3.5" />
                       Publicada no Banco
                     </span>
@@ -211,7 +217,7 @@ export default function Avaliacao({
                       type="button"
                       disabled={publicandoIndice === index}
                       onClick={() => handlePublicarQuestao(index, questao)}
-                      className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border-2 border-[#0A2E4A] bg-[#FFC53D] px-3 py-1 font-['Baloo_2'] text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5 disabled:opacity-60"
+                      className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border-2 border-[#0A2E4A] bg-[#FFC53D] px-3 py-1 font-sans text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5 disabled:opacity-60"
                     >
                       <Share2 className="h-3.5 w-3.5" />
                       <span>{publicandoIndice === index ? 'Publicando...' : 'Publicar no Banco'}</span>
@@ -275,7 +281,7 @@ export default function Avaliacao({
             disabled={salvando}
             className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-[18px] border-[3px] border-[#0A2E4A]
               bg-[linear-gradient(160deg,#5AA9E6_0%,#2496ED_45%,#1D63ED_100%)] px-6 py-3.5
-              font-['Baloo_2'] text-base font-extrabold text-white
+              font-sans text-base font-extrabold text-white
               shadow-[0_6px_0_0_#16457E] transition hover:brightness-105 active:translate-y-1 active:shadow-[0_2px_0_0_#16457E]
               disabled:opacity-60"
           >

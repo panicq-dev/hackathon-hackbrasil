@@ -22,13 +22,7 @@ async function ConteudoAlunosTurma({ params }: Props) {
 
 export default function PaginaAlunosTurma({ params }: Props) {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center bg-[#F6FBFF]">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#0A2E4A] border-t-[#2496ED]" />
-        </div>
-      }
-    >
+    <Suspense fallback={null}>
       <ConteudoAlunosTurma params={params} />
     </Suspense>
   );

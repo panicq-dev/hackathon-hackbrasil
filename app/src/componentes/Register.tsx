@@ -4,11 +4,12 @@
 import { registrarUsuario } from "@/app/actions/register";
 import { Eye, EyeOff, Mail, Lock, User, Hash, UserPlus, Star } from "lucide-react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Perfil } from "@/app/src/types/index";
 
 const INK = "#0A2E4A";
 
-const label = "font-['Baloo_2'] text-base font-bold text-[#14507F]";
+const label = "font-sans text-base font-bold text-[#14507F]";
 const hint = "text-xs font-bold text-[#4A6B85]";
 
 const fieldBase =
@@ -28,7 +29,7 @@ const eyeBtn =
   "rounded-full border-2 border-[#0A2E4A] bg-[#FFC53D] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#2496ED]/30";
 
 const tabBase =
-  "rounded-2xl border-2 p-2 font-['Baloo_2'] text-base font-extrabold transition-colors " +
+  "rounded-2xl border-2 p-2 font-sans text-base font-extrabold transition-colors " +
   "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#2496ED]/30";
 
 const tabClass = (ativa: boolean) =>
@@ -39,6 +40,7 @@ const tabClass = (ativa: boolean) =>
   }`;
 
 export default function Register() {
+  const router = useRouter();
   const [perfil, setPerfil] = useState<Perfil>('professor');
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -85,7 +87,7 @@ export default function Register() {
         return;
       }
 
-      window.location.href = '/login';
+      router.replace('/login');
 
     } catch {
       setErro('Não foi possível criar a conta. Tente novamente.');
@@ -98,18 +100,18 @@ export default function Register() {
     <div
       className="relative flex min-h-screen flex-1 flex-col items-center justify-center overflow-hidden bg-[#F4FAFF]
         bg-[image:radial-gradient(circle_at_12%_8%,#BFE3F7_0%,transparent_42%),radial-gradient(circle_at_88%_92%,#C6EFE9_0%,transparent_40%),radial-gradient(circle_at_78%_12%,#FFEFC2_0%,transparent_30%)]
-        px-4 py-12 font-['Nunito'] text-[#0A2E4A]"
+        px-4 py-12 font-sans text-[#0A2E4A]"
     >
       <form
         onSubmit={handleSubmit}
         className="relative w-full max-w-xl rounded-[44px] border-[3px] border-[#0A2E4A] bg-white p-7
           shadow-[0_8px_0_0_#0A2E4A,0_24px_45px_-18px_rgba(20,80,140,0.45)] sm:p-9"
       >
-        <div className="absolute -right-3 -top-4 -rotate-6 rounded-2xl border-2 border-[#0A2E4A] bg-[#FF6B6B] px-3 py-1.5 font-['Baloo_2'] text-xs font-extrabold text-white shadow-[0_3px_0_0_#0A2E4A]">
+        <div className="absolute -right-3 -top-4 -rotate-6 rounded-2xl border-2 border-[#0A2E4A] bg-[#FF6B6B] px-3 py-1.5 font-sans text-xs font-extrabold text-white shadow-[0_3px_0_0_#0A2E4A]">
           bem-vindo!
         </div>
 
-        <h1 className="text-center font-['Baloo_2'] text-3xl font-extrabold">
+        <h1 className="text-center font-sans text-3xl font-extrabold">
           Criar conta
         </h1>
 
@@ -351,7 +353,7 @@ export default function Register() {
               disabled={carregando}
               className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-[18px] border-[3px] border-[#0A2E4A]
                 bg-[linear-gradient(160deg,#5AA9E6_0%,#2496ED_45%,#1D63ED_100%)] px-4 py-[0.9rem]
-                font-['Baloo_2'] text-[1.15rem] font-extrabold text-white
+                font-sans text-[1.15rem] font-extrabold text-white
                 shadow-[0_7px_0_0_#16457E,0_18px_30px_-14px_rgba(29,99,237,0.65)]
                 transition hover:brightness-105 active:translate-y-1.5 active:shadow-[0_1px_0_0_#16457E]
                 disabled:cursor-not-allowed disabled:opacity-70"

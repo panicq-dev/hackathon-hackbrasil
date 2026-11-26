@@ -1,4 +1,4 @@
-import { pgTable, uniqueIndex, integer, text, timestamp, index, foreignKey, varchar, unique, jsonb, boolean, pgSequence } from "drizzle-orm/pg-core"
+import { pgTable, uniqueIndex, integer, text, timestamp, index, foreignKey, varchar, unique, jsonb, boolean, pgSequence, uuid } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
 export const avaliacaoCodigoSeq = pgSequence("avaliacao_codigo_seq", { startWith: "246", increment: "1", minValue: "1", maxValue: "9223372036854775807", cache: "1", cycle: false })
@@ -18,8 +18,12 @@ export const turmas = pgTable("turmas", {
 	professorId: integer("professor_id").notNull(),
 	nome: text().notNull(),
 	criadoEm: timestamp("criado_em", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	arquivadaEm: timestamp("arquivada_em", { withTimezone: true, mode: 'string' }),
+	lixeiraId: uuid("lixeira_id"),
 }, (table) => [
 	index("turmas_professor_idx").using("btree", table.professorId.asc().nullsLast().op("int4_ops")),
+	index("turmas_professor_arquivada_idx").on(table.professorId, table.arquivadaEm),
+	uniqueIndex("turmas_professor_nome_unico_idx").on(table.professorId, sql`lower(btrim(${table.nome}))`),
 	foreignKey({
 			columns: [table.professorId],
 			foreignColumns: [professores.id],
@@ -34,10 +38,14 @@ export const alunos = pgTable("alunos", {
 	email: text().notNull(),
 	senhaHash: text("senha_hash").notNull(),
 	turmaId: varchar("turma_id", { length: 8 }).notNull(),
+	ativo: boolean().default(true).notNull(),
+	arquivadaEm: timestamp("arquivada_em", { withTimezone: true, mode: 'string' }),
+	lixeiraId: uuid("lixeira_id"),
 	criadoEm: timestamp("criado_em", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
 	uniqueIndex("alunos_email_uidx").using("btree", sql`lower(email)`),
 	index("alunos_turma_id_idx").using("btree", table.turmaId.asc().nullsLast().op("text_ops")),
+	index("alunos_turma_ativo_idx").on(table.turmaId, table.ativo),
 	foreignKey({
 			columns: [table.turmaId],
 			foreignColumns: [turmas.id],
@@ -106,10 +114,13 @@ export const avaliacoes = pgTable("avaliacoes", {
 	codigo: text().default(sql`('APM-'::text || nextval('avaliacao_codigo_seq'::regclass))`).notNull(),
 	questoesIds: text("questoes_ids").default('').notNull(),
 	ativo: boolean().default(true).notNull(),
+	arquivadaEm: timestamp("arquivada_em", { withTimezone: true, mode: 'string' }),
+	lixeiraId: uuid("lixeira_id"),
 	criadoEm: timestamp("criado_em", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
 	index("avaliacoes_professor_idx").using("btree", table.professorId.asc().nullsLast().op("int4_ops")),
 	index("avaliacoes_turma_idx").using("btree", table.turmaId.asc().nullsLast().op("text_ops")),
+	index("avaliacoes_turma_ativo_idx").on(table.turmaId, table.ativo),
 	foreignKey({
 			columns: [table.professorId],
 			foreignColumns: [professores.id],

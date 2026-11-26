@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import {
   X,
   Users,
@@ -32,6 +32,14 @@ export default function ModalRespostasProfessor({ avaliacaoId, onFechar }: Modal
   const [relatorio, setRelatorio] = useState<RelatorioConsolidado | null>(null);
   const [copiado, setCopiado] = useState(false);
   const [alunoExpandido, setAlunoExpandido] = useState<number | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const modal = modalRef.current;
+    if (modal) {
+      modal.style.marginTop = `${window.scrollY - modal.offsetTop}px`;
+    }
+  }, []);
 
   useEffect(() => {
     async function carregar() {
@@ -76,8 +84,11 @@ export default function ModalRespostasProfessor({ avaliacaoId, onFechar }: Modal
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0A2E4A]/60 p-4 backdrop-blur-sm">
-      <div className="relative flex max-h-[90vh] w-full max-w-4xl flex-col rounded-[36px] border-[3px] border-[#0A2E4A] bg-white shadow-[0_12px_0_0_#0A2E4A]">
+    <div
+      ref={modalRef}
+      className="relative z-50 min-h-screen bg-[#0A2E4A]/60 p-4 backdrop-blur-sm"
+    >
+      <div className="relative mx-auto my-4 flex w-full max-w-4xl flex-col rounded-[36px] border-[3px] border-[#0A2E4A] bg-white shadow-[0_12px_0_0_#0A2E4A]">
         {/* Cabeçalho */}
         <div className="flex items-center justify-between border-b-2 border-[#0A2E4A]/15 px-6 py-5">
           <div>
@@ -85,7 +96,7 @@ export default function ModalRespostasProfessor({ avaliacaoId, onFechar }: Modal
               <span className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#0A2E4A] bg-[#FFC53D]">
                 <Users className="h-4 w-4 text-[#0A2E4A]" />
               </span>
-              <h2 className="font-['Baloo_2'] text-2xl font-extrabold text-[#0A2E4A]">
+              <h2 className="font-sans text-2xl font-extrabold text-[#0A2E4A]">
                 Respostas da Avaliação #{avaliacaoId.slice(0, 8)}
               </h2>
             </div>
@@ -109,7 +120,7 @@ export default function ModalRespostasProfessor({ avaliacaoId, onFechar }: Modal
           <button
             type="button"
             onClick={() => setAbaAtiva('respondentes')}
-            className={`flex cursor-pointer items-center gap-2 border-b-4 px-4 py-2 font-['Baloo_2'] text-sm font-extrabold transition ${
+            className={`flex cursor-pointer items-center gap-2 border-b-4 px-4 py-2 font-sans text-sm font-extrabold transition ${
               abaAtiva === 'respondentes'
                 ? 'border-[#1D63ED] text-[#1D63ED]'
                 : 'border-transparent text-[#4A6B85] hover:text-[#0A2E4A]'
@@ -122,7 +133,7 @@ export default function ModalRespostasProfessor({ avaliacaoId, onFechar }: Modal
           <button
             type="button"
             onClick={() => setAbaAtiva('analise')}
-            className={`flex cursor-pointer items-center gap-2 border-b-4 px-4 py-2 font-['Baloo_2'] text-sm font-extrabold transition ${
+            className={`flex cursor-pointer items-center gap-2 border-b-4 px-4 py-2 font-sans text-sm font-extrabold transition ${
               abaAtiva === 'analise'
                 ? 'border-[#1D63ED] text-[#1D63ED]'
                 : 'border-transparent text-[#4A6B85] hover:text-[#0A2E4A]'
@@ -134,11 +145,11 @@ export default function ModalRespostasProfessor({ avaliacaoId, onFechar }: Modal
         </div>
 
         {/* Conteúdo */}
-        <div className="flex-1 overflow-y-auto p-6 font-['Nunito'] text-[#0A2E4A]">
+        <div className="p-6 font-sans text-[#0A2E4A]">
           {carregando ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#0A2E4A] border-t-[#2496ED]" />
-              <p className="mt-3 font-['Baloo_2'] text-base font-bold text-[#4A6B85]">
+              <p className="mt-3 font-sans text-base font-bold text-[#4A6B85]">
                 Carregando dados consolidados...
               </p>
             </div>
@@ -149,7 +160,7 @@ export default function ModalRespostasProfessor({ avaliacaoId, onFechar }: Modal
           ) : !relatorio || relatorio.totalRespondentes === 0 ? (
             <div className="rounded-[28px] border-2 border-dashed border-[#0A2E4A]/40 bg-[#F4FAFF] p-12 text-center">
               <Users className="mx-auto mb-3 h-12 w-12 text-[#4A6B85]" />
-              <h3 className="font-['Baloo_2'] text-xl font-extrabold">Nenhuma resposta registrada ainda</h3>
+              <h3 className="font-sans text-xl font-extrabold">Nenhuma resposta registrada ainda</h3>
               <p className="mt-1 text-sm font-semibold text-[#4A6B85]">
                 Assim que os alunos enviarem suas resoluções, o diagnóstico e respostas aparecerão aqui.
               </p>
@@ -159,7 +170,7 @@ export default function ModalRespostasProfessor({ avaliacaoId, onFechar }: Modal
               {/* Resumo de lacunas */}
               {Object.keys(relatorio.lacunasGeraisTurma).length > 0 && (
                 <div className="rounded-[22px] border-2 border-[#0A2E4A] bg-[#FFF8E7] p-4 shadow-[0_4px_0_0_#0A2E4A]">
-                  <h4 className="flex items-center gap-1.5 font-['Baloo_2'] text-sm font-extrabold text-[#9A6200]">
+                  <h4 className="flex items-center gap-1.5 font-sans text-sm font-extrabold text-[#9A6200]">
                     <Sparkles className="h-4 w-4" />
                     Lacunas de Aprendizagem Mapeadas na Turma
                   </h4>
@@ -189,7 +200,7 @@ export default function ModalRespostasProfessor({ avaliacaoId, onFechar }: Modal
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
                           <div className="flex items-center gap-2">
-                            <h4 className="font-['Baloo_2'] text-lg font-extrabold">
+                            <h4 className="font-sans text-lg font-extrabold">
                               {item.aluno.nome}
                             </h4>
                             <span className="rounded-full border border-[#0A2E4A]/30 bg-[#EBF5FF] px-2.5 py-0.5 text-xs font-bold text-[#14507F]">
@@ -215,7 +226,7 @@ export default function ModalRespostasProfessor({ avaliacaoId, onFechar }: Modal
                             onClick={() =>
                               setAlunoExpandido(expandido ? null : item.aluno.id)
                             }
-                            className="cursor-pointer rounded-xl border-2 border-[#0A2E4A] bg-[#FFC53D] px-3 py-1.5 font-['Baloo_2'] text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A] hover:brightness-105 active:translate-y-0.5"
+                            className="cursor-pointer rounded-xl border-2 border-[#0A2E4A] bg-[#FFC53D] px-3 py-1.5 font-sans text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A] hover:brightness-105 active:translate-y-0.5"
                           >
                             {expandido ? 'Ocultar detalhes' : 'Ver respostas'}
                           </button>
@@ -246,7 +257,7 @@ export default function ModalRespostasProfessor({ avaliacaoId, onFechar }: Modal
                                   >
                                     <div>
                                       <span className="font-bold">{campo.label}</span>
-                                      <div className="flex items-center gap-2 text-[11px] text-[#4A6B85]">
+                                      <div className="flex items-center gap-2 text-xs text-[#4A6B85]">
                                         <span>
                                           Resposta do aluno:{' '}
                                           <strong className="text-[#0A2E4A]">
@@ -276,7 +287,7 @@ export default function ModalRespostasProfessor({ avaliacaoId, onFechar }: Modal
                                             <XCircle className="h-4 w-4" /> Incorreto
                                           </span>
                                           {campo.erroProvavelSeIncorreto && (
-                                            <p className="text-[11px] font-bold text-[#C0392B]">
+                                            <p className="text-xs font-bold text-[#C0392B]">
                                               Gap: {campo.erroProvavelSeIncorreto}
                                             </p>
                                           )}
@@ -300,7 +311,7 @@ export default function ModalRespostasProfessor({ avaliacaoId, onFechar }: Modal
             <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-[#0A2E4A] bg-[#EBF5FF] p-4 shadow-[0_3px_0_0_#0A2E4A]">
                 <div>
-                  <h4 className="font-['Baloo_2'] text-base font-extrabold text-[#14507F]">
+                  <h4 className="font-sans text-base font-extrabold text-[#14507F]">
                     Dados estruturados para análise manual
                   </h4>
                   <p className="text-xs font-semibold text-[#4A6B85]">
@@ -312,7 +323,7 @@ export default function ModalRespostasProfessor({ avaliacaoId, onFechar }: Modal
                   <button
                     type="button"
                     onClick={copiarJson}
-                    className="flex cursor-pointer items-center gap-1.5 rounded-xl border-2 border-[#0A2E4A] bg-white px-3 py-2 font-['Baloo_2'] text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A] hover:bg-[#FFEFC2]"
+                    className="flex cursor-pointer items-center gap-1.5 rounded-xl border-2 border-[#0A2E4A] bg-white px-3 py-2 font-sans text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A] hover:bg-[#FFEFC2]"
                   >
                     {copiado ? <Check className="h-4 w-4 text-[#27AE60]" /> : <Copy className="h-4 w-4" />}
                     {copiado ? 'Copiado!' : 'Copiar JSON'}
@@ -321,7 +332,7 @@ export default function ModalRespostasProfessor({ avaliacaoId, onFechar }: Modal
                   <button
                     type="button"
                     onClick={baixarJson}
-                    className="flex cursor-pointer items-center gap-1.5 rounded-xl border-2 border-[#0A2E4A] bg-[#2496ED] px-3 py-2 font-['Baloo_2'] text-xs font-extrabold text-white shadow-[0_2px_0_0_#16457E] hover:brightness-105"
+                    className="flex cursor-pointer items-center gap-1.5 rounded-xl border-2 border-[#0A2E4A] bg-[#2496ED] px-3 py-2 font-sans text-xs font-extrabold text-white shadow-[0_2px_0_0_#16457E] hover:brightness-105"
                   >
                     <Download className="h-4 w-4" />
                     Baixar arquivo (.json)
@@ -329,7 +340,7 @@ export default function ModalRespostasProfessor({ avaliacaoId, onFechar }: Modal
                 </div>
               </div>
 
-              <pre className="max-h-96 overflow-x-auto rounded-2xl border-2 border-[#0A2E4A] bg-[#0A2E4A] p-4 text-xs font-mono text-[#EBF5FF] shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)]">
+              <pre className="whitespace-pre-wrap break-all rounded-2xl border-2 border-[#0A2E4A] bg-[#0A2E4A] p-4 text-xs font-mono text-[#EBF5FF] shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)]">
                 {JSON.stringify(relatorio, null, 2)}
               </pre>
             </div>

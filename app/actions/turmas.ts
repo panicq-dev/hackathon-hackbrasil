@@ -75,7 +75,7 @@ export async function obterDesempenhoDaTurma(
     const turmaRes = await pool.query<{ id: string; nome: string }>(
       `SELECT id, nome
          FROM turmas
-        WHERE id = $1 AND professor_id = $2
+        WHERE id = $1 AND professor_id = $2 AND arquivada_em IS NULL
         LIMIT 1`,
       [turmaId, professorId]
     );
@@ -91,7 +91,7 @@ export async function obterDesempenhoDaTurma(
     }>(
       `SELECT id, nome, matricula
          FROM alunos
-        WHERE turma_id = $1
+        WHERE turma_id = $1 AND ativo = true
         ORDER BY nome ASC`,
       [turmaId]
     );
@@ -103,7 +103,7 @@ export async function obterDesempenhoDaTurma(
     }>(
       `SELECT id, criado_em, conteudo
          FROM avaliacoes
-        WHERE turma_id = $1
+        WHERE turma_id = $1 AND ativo = true
         ORDER BY criado_em DESC`,
       [turmaId]
     );
@@ -191,6 +191,18 @@ export async function criarTurma(nome: string): Promise<{
       return { erro: "O nome da turma deve ter no máximo 80 caracteres." };
     }
 
+    const nomeExistente = await pool.query(
+      `SELECT 1
+         FROM turmas
+        WHERE professor_id = $1
+          AND LOWER(BTRIM(nome)) = LOWER(BTRIM($2))
+        LIMIT 1`,
+      [professorId, nomeFormatado]
+    );
+    if (nomeExistente.rows.length > 0) {
+      return { erro: "Você já possui uma turma com esse nome, inclusive na lixeira." };
+    }
+
     const res = await pool.query<{
       id: string;
       professor_id: number;
@@ -218,6 +230,10 @@ export async function criarTurma(nome: string): Promise<{
     };
   } catch (e: unknown) {
     const err = e as Error;
+    const erroBanco = e as Error & { code?: string; constraint?: string };
+    if (erroBanco.code === "23505" && erroBanco.constraint === "turmas_professor_nome_unico_idx") {
+      return { erro: "Você já possui uma turma com esse nome, inclusive na lixeira." };
+    }
     console.error("Erro ao criar turma:", err);
     return { erro: err.message || "Não foi possível criar a turma." };
   }
@@ -247,9 +263,9 @@ export async function listarTurmasProfessor(): Promise<{
               COUNT(DISTINCT a.id)::text AS total_alunos,
               COUNT(DISTINCT av.id)::text AS total_avaliacoes
          FROM turmas t
-    LEFT JOIN alunos a ON a.turma_id = t.id
-    LEFT JOIN avaliacoes av ON av.turma_id = t.id
-        WHERE t.professor_id = $1
+    LEFT JOIN alunos a ON a.turma_id = t.id AND a.ativo = true
+    LEFT JOIN avaliacoes av ON av.turma_id = t.id AND av.ativo = true
+        WHERE t.professor_id = $1 AND t.arquivada_em IS NULL
         GROUP BY t.id, t.nome, t.professor_id, t.criado_em
         ORDER BY t.criado_em DESC`,
       [professorId]
@@ -286,7 +302,9 @@ export async function obterAlunosDaTurma(turmaId: string): Promise<{
 
     // Valida que a turma pertence a esse professor
     const turmaVal = await pool.query<{ id: string; nome: string }>(
-      `SELECT id, nome FROM turmas WHERE id = $1 AND professor_id = $2 LIMIT 1`,
+      `SELECT id, nome FROM turmas
+        WHERE id = $1 AND professor_id = $2 AND arquivada_em IS NULL
+        LIMIT 1`,
       [turmaId, professorId]
     );
 
@@ -300,7 +318,7 @@ export async function obterAlunosDaTurma(turmaId: string): Promise<{
     }>(
       `SELECT id, nome
          FROM alunos
-        WHERE turma_id = $1
+        WHERE turma_id = $1 AND ativo = true
         ORDER BY nome ASC`,
       [turmaId]
     );
@@ -330,8 +348,12 @@ export async function obterTurmaDoAluno(): Promise<{
     }
 
     const res = await pool.query<{ id: string; nome: string }>(
-      `SELECT id, nome FROM turmas WHERE id = $1 LIMIT 1`,
-      [sessao.turmaId]
+      `SELECT t.id, t.nome
+         FROM turmas t
+         JOIN alunos a ON a.turma_id = t.id
+        WHERE t.id = $1 AND t.arquivada_em IS NULL AND a.id = $2 AND a.ativo = true
+        LIMIT 1`,
+      [sessao.turmaId, Number(sessao.id)]
     );
 
     if (res.rowCount === 0) {

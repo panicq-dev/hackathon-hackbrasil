@@ -152,6 +152,17 @@ export async function listarAvaliacoes(): Promise<{
     if (sessao.perfil === "aluno") {
       const alunoId = Number(sessao.id);
       const turmaId = (sessao.turmaId ?? "").trim();
+      const alunoAtivo = await pool.query(
+        `SELECT 1
+           FROM alunos a
+           JOIN turmas t ON t.id = a.turma_id
+          WHERE a.id = $1 AND a.ativo = true AND t.arquivada_em IS NULL
+          LIMIT 1`,
+        [alunoId]
+      );
+      if (alunoAtivo.rowCount === 0) {
+        return { erro: "Sua conta ou turma está inativa." };
+      }
 
       const res = await pool.query<{
         id: string;
@@ -172,6 +183,15 @@ export async function listarAvaliacoes(): Promise<{
               (LENGTH($2) > 0 AND LOWER(TRIM(a.turma_id)) = LOWER($2))
               OR a.turma_id IS NULL
               OR TRIM(a.turma_id) = ''
+            )
+            AND (
+              a.turma_id IS NULL
+              OR TRIM(a.turma_id) = ''
+              OR EXISTS (
+                SELECT 1 FROM turmas t
+                 WHERE LOWER(t.id) = LOWER(TRIM(a.turma_id))
+                   AND t.arquivada_em IS NULL
+              )
             )
           ORDER BY a.criado_em DESC`,
         [alunoId, turmaId]
@@ -203,16 +223,20 @@ export async function listarAvaliacoes(): Promise<{
         total_respostas: string;
       }>(
         `SELECT a.id, a.professor_id, a.turma_id, a.ativo, a.criado_em, a.conteudo,
-                COUNT(r.id)::text as total_respostas
+                (SELECT COUNT(*)::text
+                   FROM respostas_avaliacoes r
+                   JOIN alunos al ON al.id = r.aluno_id AND al.ativo = true
+                   JOIN turmas t ON t.id = al.turma_id AND t.arquivada_em IS NULL
+                  WHERE r.avaliacao_id = a.id) as total_respostas
            FROM avaliacoes a
-      LEFT JOIN respostas_avaliacoes r
-             ON r.avaliacao_id = a.id
           WHERE (
             a.professor_id = $1
-            OR a.turma_id IN (SELECT id FROM turmas WHERE professor_id = $1)
+            OR a.turma_id IN (
+              SELECT id FROM turmas WHERE professor_id = $1 AND arquivada_em IS NULL
+            )
             OR (a.professor_id IS NULL AND a.turma_id IS NULL)
           )
-          GROUP BY a.id, a.professor_id, a.turma_id, a.ativo, a.criado_em, a.conteudo
+            AND a.ativo = true
           ORDER BY a.criado_em DESC`,
         [professorId]
       );
@@ -252,10 +276,33 @@ export async function salvarRespostaAluno(
       return { erro: "Respostas inválidas." };
     }
 
+    const alunoAtivo = await pool.query(
+      `SELECT 1
+         FROM alunos a
+         JOIN turmas t ON t.id = a.turma_id
+        WHERE a.id = $1 AND a.ativo = true AND t.arquivada_em IS NULL
+        LIMIT 1`,
+      [alunoId]
+    );
+    if (alunoAtivo.rowCount === 0) {
+      return { erro: "Sua conta ou turma está inativa." };
+    }
+
     // Verifica se a avaliação existe e está ativa
-    const avaliacaoRes = await pool.query<{ id: string; ativo: boolean }>(
-      `SELECT id, ativo FROM avaliacoes WHERE id = $1 LIMIT 1`,
-      [avaliacaoId]
+    const avaliacaoRes = await pool.query<{
+      id: string;
+      ativo: boolean;
+      turma_id: string | null;
+    }>(
+      `SELECT id, ativo, turma_id FROM avaliacoes
+        WHERE id = $1
+          AND (
+            turma_id IS NULL
+            OR TRIM(turma_id) = ''
+            OR LOWER(TRIM(turma_id)) = LOWER($2)
+          )
+        LIMIT 1`,
+      [avaliacaoId, sessao.turmaId ?? ""]
     );
 
     if (avaliacaoRes.rowCount === 0) {
@@ -325,7 +372,8 @@ export async function obterRespondentes(avaliacaoId: string): Promise<{
               r.respostas
          FROM respostas_avaliacoes r
          JOIN alunos al ON al.id = r.aluno_id
-        WHERE r.avaliacao_id = $1
+         JOIN turmas t ON t.id = al.turma_id AND t.arquivada_em IS NULL
+        WHERE r.avaliacao_id = $1 AND al.ativo = true
         ORDER BY r.criado_em DESC`,
       [avaliacaoId]
     );
@@ -369,7 +417,7 @@ export async function obterDadosConsolidadosParaAnalise(avaliacaoId: string): Pr
     }>(
       `SELECT id, criado_em, turma_id, conteudo
          FROM avaliacoes
-        WHERE id = $1
+        WHERE id = $1 AND ativo = true
         LIMIT 1`,
       [avaliacaoId]
     );
@@ -399,7 +447,8 @@ export async function obterDadosConsolidadosParaAnalise(avaliacaoId: string): Pr
               r.respostas
          FROM respostas_avaliacoes r
          JOIN alunos al ON al.id = r.aluno_id
-        WHERE r.avaliacao_id = $1
+         JOIN turmas t ON t.id = al.turma_id AND t.arquivada_em IS NULL
+        WHERE r.avaliacao_id = $1 AND al.ativo = true
         ORDER BY al.nome ASC`,
       [avaliacaoId]
     );
@@ -582,11 +631,23 @@ export async function obterFeedbackAluno(avaliacaoId: string): Promise<{
       return { erro: "Identificador da avaliação inválido." };
     }
 
+    const alunoAtivo = await pool.query(
+      `SELECT 1
+         FROM alunos a
+         JOIN turmas t ON t.id = a.turma_id
+        WHERE a.id = $1 AND a.ativo = true AND t.arquivada_em IS NULL
+        LIMIT 1`,
+      [alunoId]
+    );
+    if (alunoAtivo.rowCount === 0) {
+      return { erro: "Sua conta ou turma está inativa." };
+    }
+
     const avaliacaoRes = await pool.query<{
       id: string;
       conteudo: { questoes?: EstruturaQuestao[] };
     }>(
-      `SELECT id, conteudo FROM avaliacoes WHERE id = $1 LIMIT 1`,
+      `SELECT id, conteudo FROM avaliacoes WHERE id = $1 AND ativo = true LIMIT 1`,
       [avaliacaoId]
     );
 

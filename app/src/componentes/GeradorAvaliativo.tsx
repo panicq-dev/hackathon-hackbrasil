@@ -107,12 +107,12 @@ export default function GeradorAvaliativo({ onAvaliacaoGerada }: GeradorAvaliati
       className="relative w-full rounded-[32px] border-[3px] border-[#0A2E4A] bg-white p-6 shadow-[0_8px_0_0_#0A2E4A]"
     >
       {/* Selo */}
-      <div className="absolute -right-2 -top-3 -rotate-6 rounded-2xl border-2 border-[#0A2E4A] bg-[#FF6B6B] px-3 py-1 font-['Baloo_2'] text-xs font-extrabold text-white shadow-[0_3px_0_0_#0A2E4A]">
+      <div className="absolute -right-2 -top-3 -rotate-6 rounded-2xl border-2 border-[#0A2E4A] bg-[#FF6B6B] px-3 py-1 font-sans text-xs font-extrabold text-white shadow-[0_3px_0_0_#0A2E4A]">
         o prof que aprova!
       </div>
 
       {/* Título */}
-      <h2 className="text-center font-['Baloo_2'] text-2xl font-extrabold text-[#0A2E4A]">
+      <h2 className="text-center font-sans text-2xl font-extrabold text-[#0A2E4A]">
         Gerar avaliação
       </h2>
 
@@ -137,7 +137,7 @@ export default function GeradorAvaliativo({ onAvaliacaoGerada }: GeradorAvaliati
         {/* Turma e questões */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="space-y-1">
-            <label className="font-['Baloo_2'] text-sm font-bold text-[#14507F]">
+            <label className="font-sans text-sm font-bold text-[#14507F]">
               Para qual turma?
             </label>
             <div className="relative">
@@ -163,7 +163,7 @@ export default function GeradorAvaliativo({ onAvaliacaoGerada }: GeradorAvaliati
           </div>
 
           <div className="space-y-1">
-            <label className="font-['Baloo_2'] text-sm font-bold text-[#14507F]">
+            <label className="font-sans text-sm font-bold text-[#14507F]">
               Questões
             </label>
             <div className="relative">
@@ -186,7 +186,7 @@ export default function GeradorAvaliativo({ onAvaliacaoGerada }: GeradorAvaliati
 
         {/* Conteúdos de Matemática */}
         <div className="space-y-1">
-          <label className="font-['Baloo_2'] text-sm font-bold text-[#14507F]">
+          <label className="font-sans text-sm font-bold text-[#14507F]">
             Quais conteúdos de Matemática?
           </label>
           <input
@@ -216,11 +216,11 @@ export default function GeradorAvaliativo({ onAvaliacaoGerada }: GeradorAvaliati
               className="h-4 w-4 rounded border-2 border-[#0A2E4A] text-[#2496ED] focus:ring-0 accent-[#2496ED]"
             />
             <div className="text-xs">
-              <span className="font-['Baloo_2'] font-extrabold text-[#0A2E4A] flex items-center gap-1.5">
+              <span className="font-sans font-extrabold text-[#0A2E4A] flex items-center gap-1.5">
                 <Users className="h-3.5 w-3.5 text-[#2496ED]" />
                 Reaproveitar questões do Banco
               </span>
-              <p className="text-[11px] text-[#4A6B85] font-semibold mt-0.5">
+              <p className="text-xs text-[#4A6B85] font-semibold mt-0.5">
                 Busca questões já cadastradas com boa avaliação sobre o tema para compor a avaliação.
               </p>
             </div>
@@ -234,11 +234,11 @@ export default function GeradorAvaliativo({ onAvaliacaoGerada }: GeradorAvaliati
               className="h-4 w-4 rounded border-2 border-[#0A2E4A] text-[#2496ED] focus:ring-0 accent-[#2496ED]"
             />
             <div className="text-xs">
-              <span className="font-['Baloo_2'] font-bold text-[#0A2E4A] flex items-center gap-1.5">
+              <span className="font-sans font-bold text-[#0A2E4A] flex items-center gap-1.5">
                 <Share2 className="h-3.5 w-3.5 text-[#FFC53D]" />
                 Disponibilizar novas questões no Banco Público
               </span>
-              <p className="text-[11px] text-[#4A6B85] font-semibold mt-0.5">
+              <p className="text-xs text-[#4A6B85] font-semibold mt-0.5">
                 Permite que outros professores visualizem, avaliem e utilizem as questões.
               </p>
             </div>
@@ -248,7 +248,7 @@ export default function GeradorAvaliativo({ onAvaliacaoGerada }: GeradorAvaliati
         {/* Descrição detalhada */}
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <label className="font-['Baloo_2'] text-sm font-bold text-[#14507F]">
+            <label className="font-sans text-sm font-bold text-[#14507F]">
               Descrição detalhada
             </label>
             <span className="text-xs font-extrabold text-[#4A6B85]">(opcional)</span>
@@ -266,13 +266,13 @@ export default function GeradorAvaliativo({ onAvaliacaoGerada }: GeradorAvaliati
         <button
           type="submit"
           disabled={carregando}
-          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-[18px] border-[3px] border-[#0A2E4A] bg-gradient-to-br from-[#5AA9E6] via-[#2496ED] to-[#1D63ED] px-4 py-3 font-['Baloo_2'] text-base font-extrabold text-white shadow-[0_5px_0_0_#16457E] transition hover:brightness-105 active:translate-y-1 active:shadow-[0_1px_0_0_#16457E] disabled:opacity-60"
+          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-[18px] border-[3px] border-[#0A2E4A] bg-gradient-to-br from-[#5AA9E6] via-[#2496ED] to-[#1D63ED] px-4 py-3 font-sans text-base font-extrabold text-white shadow-[0_5px_0_0_#16457E] transition hover:brightness-105 active:translate-y-1 active:shadow-[0_1px_0_0_#16457E] disabled:opacity-60"
         >
           <Sparkles className="h-4 w-4" />
           {carregando ? 'Processando e gerando...' : 'Gerar avaliação'}
         </button>
 
-        <p className="flex items-center justify-center gap-1 text-center text-[11px] font-extrabold text-[#4A6B85]">
+        <p className="flex items-center justify-center gap-1 text-center text-xs font-extrabold text-[#4A6B85]">
           <Star className="h-3 w-3 fill-[#FFC53D] text-[#FFC53D]" />
           você pode publicar ou ajustar tudo depois!
         </p>
