@@ -13,7 +13,6 @@ import {
   ThumbsUp,
   ThumbsDown,
   Search,
-  Filter,
   Sparkles,
   Check,
   CheckCircle2,
@@ -34,7 +33,6 @@ import {
   listarQuestoesComunidade,
   votarQuestao,
   despublicarQuestaoComunidade,
-  listarTagsMaterias,
   criarAvaliacaoComQuestoesBanco,
 } from '@/app/actions/questoes';
 import { listarTurmasProfessor, TurmaItem } from '@/app/actions/turmas';
@@ -56,8 +54,6 @@ const FOCO =
 export default function BancoQuestoesView({ usuario }: { usuario: UsuarioSessao }) {
   const router = useRouter();
   const [questoes, setQuestoes] = useState<QuestaoComunidade[]>([]);
-  const [tags, setTags] = useState<string[]>([]);
-  const [tagSelecionada, setTagSelecionada] = useState<string>('todas');
   const [apenasMinhas, setApenasMinhas] = useState<boolean>(false);
   const [termoBusca, setTermoBusca] = useState<string>('');
   const [ordenacao, setOrdenacao] = useState<'populares' | 'recentes'>('populares');
@@ -83,22 +79,18 @@ export default function BancoQuestoesView({ usuario }: { usuario: UsuarioSessao 
     setCarregando(true);
     setErro('');
     try {
-      const [resQuestoes, resTags, resTurmas] = await Promise.all([
+      const [resQuestoes, resTurmas] = await Promise.all([
         listarQuestoesComunidade({
           busca: termoBusca,
-          tag: tagSelecionada,
+          tag: 'Matemática', // Fixo: apenas Matemática
           apenasMinhas: isProfessor ? apenasMinhas : false,
           ordenarPor: ordenacao,
         }),
-        listarTagsMaterias(),
         isProfessor ? listarTurmasProfessor() : Promise.resolve({ turmas: [] }),
       ]);
 
       if (resQuestoes.questoes) {
         setQuestoes(resQuestoes.questoes);
-      }
-      if (resTags) {
-        setTags(resTags);
       }
       if (resTurmas.turmas && resTurmas.turmas.length > 0) {
         setTurmas(resTurmas.turmas);
@@ -115,7 +107,7 @@ export default function BancoQuestoesView({ usuario }: { usuario: UsuarioSessao 
 
   useEffect(() => {
     carregarDados();
-  }, [tagSelecionada, ordenacao, apenasMinhas]);
+  }, [ordenacao, apenasMinhas]);
 
   async function handleBuscar(e: React.FormEvent) {
     e.preventDefault();
@@ -460,42 +452,8 @@ export default function BancoQuestoesView({ usuario }: { usuario: UsuarioSessao 
             </div>
           )}
 
-          {/* TAGS E ORDENAÇÃO */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#0A2E4A]/10 pt-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="flex items-center gap-1 font-['Baloo_2'] text-xs font-bold text-[#4A6B85]">
-                <Filter className="h-3.5 w-3.5" />
-                Matérias:
-              </span>
-
-              <button
-                type="button"
-                onClick={() => setTagSelecionada('todas')}
-                className={`cursor-pointer rounded-full border-2 border-[#0A2E4A] px-3 py-1 font-['Baloo_2'] text-xs font-extrabold transition ${
-                  tagSelecionada === 'todas'
-                    ? 'bg-[#FFC53D] text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A]'
-                    : 'bg-white text-[#4A6B85] hover:bg-[#FFEFC2]'
-                }`}
-              >
-                Todas
-              </button>
-
-              {tags.map((tag) => (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => setTagSelecionada(tag)}
-                  className={`cursor-pointer rounded-full border-2 border-[#0A2E4A] px-3 py-1 font-['Baloo_2'] text-xs font-extrabold capitalize transition ${
-                    tagSelecionada === tag
-                      ? 'bg-[#FFC53D] text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A]'
-                      : 'bg-white text-[#4A6B85] hover:bg-[#FFEFC2]'
-                  }`}
-                >
-                  {tag}
-                </button>
-              ))}
-            </div>
-
+          {/* ORDENAÇÃO */}
+          <div className="flex flex-wrap items-center justify-end gap-3 border-t border-[#0A2E4A]/10 pt-3">
             <div className="flex items-center gap-2">
               <span className="font-['Baloo_2'] text-xs font-bold text-[#4A6B85]">Ordenar:</span>
               <button
@@ -576,7 +534,7 @@ export default function BancoQuestoesView({ usuario }: { usuario: UsuarioSessao 
               Nenhuma questão encontrada
             </h3>
             <p className="mt-1 font-['Nunito'] text-sm font-semibold text-[#4A6B85]">
-              Tente alterar os termos da busca ou filtre por outra matéria.
+              Tente alterar os termos da busca ou o filtro de exibição.
             </p>
           </div>
         ) : (
@@ -608,10 +566,6 @@ export default function BancoQuestoesView({ usuario }: { usuario: UsuarioSessao 
                           </span>
                         </label>
                       )}
-
-                      <span className="rounded-full border-2 border-[#0A2E4A] bg-[#FFEFC2] px-3 py-0.5 font-['Baloo_2'] text-xs font-extrabold capitalize text-[#0A2E4A]">
-                        {q.materiaTag}
-                      </span>
 
                       <span className="flex items-center gap-1 text-xs font-bold text-[#4A6B85]">
                         <User className="h-3 w-3" />

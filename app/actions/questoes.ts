@@ -5,15 +5,15 @@ import { obterSessao } from '@/app/src/lib/session';
 import { EstruturaQuestao, QuestaoComunidade } from '@/app/src/types';
 
 /**
- * Garante ou busca o ID da tag de matéria na tabela `materias_tag`
+ * Garante ou busca o ID da tag 'matemática' na tabela `materias_tag`
  */
-async function obterOuCriarMateriaTagId(tagNome: string): Promise<number> {
-  const tagNormalizada = (tagNome || 'Geral').trim().toLowerCase();
+async function obterOuCriarMateriaTagId(): Promise<number> {
+  const tagNormalizada = 'matemática';
   
   // Tenta buscar existente
   const resBusca = await pool.query(
-    'SELECT id FROM materias_tag WHERE LOWER(tag) = LOWER($1) LIMIT 1',
-    [tagNormalizada]
+    'SELECT id FROM materias_tag WHERE LOWER(tag) IN ($1, $2) LIMIT 1',
+    ['matemática', 'matematica']
   );
 
   if (resBusca.rows.length > 0) {
@@ -29,12 +29,18 @@ async function obterOuCriarMateriaTagId(tagNome: string): Promise<number> {
   return resInsert.rows[0].id;
 }
 
+function ehTagMatematica(tag?: string): boolean {
+  if (!tag) return true;
+  const norm = removerAcentos(tag.trim());
+  return norm === 'matematica';
+}
+
 /**
- * Publica uma questão na Comunidade (Banco de Questões público)
+ * Publica uma questão na Comunidade (Banco de Questões público) - apenas Matemática
  */
 export async function publicarQuestaoComunidade(
   questao: EstruturaQuestao,
-  tagMateria: string = 'Geral'
+  tagMateria: string = 'Matemática'
 ): Promise<{ sucesso: boolean; questaoId?: number; erro?: string }> {
   try {
     const sessao = await obterSessao();
@@ -42,8 +48,12 @@ export async function publicarQuestaoComunidade(
       return { sucesso: false, erro: 'Apenas professores podem publicar questões na comunidade.' };
     }
 
+    if (!ehTagMatematica(tagMateria)) {
+      return { sucesso: false, erro: 'Apenas questões de Matemática são aceitas.' };
+    }
+
     const professorId = Number(sessao.id);
-    const materiaTagId = await obterOuCriarMateriaTagId(tagMateria);
+    const materiaTagId = await obterOuCriarMateriaTagId();
 
     // Se a questão já tiver um bancoId existente, atualizamos para pública
     if (questao.bancoId) {
@@ -130,7 +140,7 @@ export async function listarQuestoesComunidade(filtros?: {
         q.criado_em as "criadoEm",
         q.professor_id as "professorId",
         COALESCE(p.nome, 'Professor') as "professorNome",
-        COALESCE(m.tag, 'Geral') as "materiaTag",
+        COALESCE(m.tag, 'Matemática') as "materiaTag",
         COALESCE(COUNT(CASE WHEN r.tipo = 'like' THEN 1 END), 0)::int as "likesCount",
         COALESCE(COUNT(CASE WHEN r.tipo = 'dislike' THEN 1 END), 0)::int as "dislikesCount",
         MAX(CASE WHEN r.professor_id = $1 THEN r.tipo ELSE NULL END) as "meuVoto"
@@ -139,6 +149,7 @@ export async function listarQuestoesComunidade(filtros?: {
       LEFT JOIN materias_tag m ON m.id = q.materia_tag_id
       LEFT JOIN questoes_reacoes r ON r.questao_id = q.id
       WHERE (q.publica = true OR q.professor_id = $1)
+        AND TRANSLATE(LOWER(TRIM(COALESCE(m.tag, ''))), ${TRANSLATE_ACENTOS_SQL}) = 'matematica'
     `;
 
     const params: (string | number)[] = [professorId];
@@ -149,11 +160,9 @@ export async function listarQuestoesComunidade(filtros?: {
       sql += ` AND q.professor_id = $1`;
     }
 
-    // Filtro por tag de matéria (insensível a maiúsculas e acentos)
-    if (filtros?.tag && filtros.tag !== 'todas') {
-      sql += ` AND TRANSLATE(LOWER(TRIM(m.tag)), ${TRANSLATE_ACENTOS_SQL}) = TRANSLATE(LOWER(TRIM($${paramIndex})), ${TRANSLATE_ACENTOS_SQL})`;
-      params.push(filtros.tag);
-      paramIndex++;
+    // Rejeita qualquer tentativa de filtrar por outra matéria
+    if (filtros?.tag && filtros.tag !== 'todas' && !ehTagMatematica(filtros.tag)) {
+      return { sucesso: true, questoes: [] };
     }
 
     // Busca textual resiliente (enunciado, json da questão, matéria e nome do professor)
@@ -313,7 +322,9 @@ export async function buscarQuestoesParaReaproveitar(
       FROM questoes q
       JOIN materias_tag m ON m.id = q.materia_tag_id
       LEFT JOIN questoes_reacoes r ON r.questao_id = q.id
-      WHERE q.publica = true AND (${condicoes})
+      WHERE q.publica = true
+        AND TRANSLATE(LOWER(TRIM(COALESCE(m.tag, ''))), ${TRANSLATE_ACENTOS_SQL}) = 'matematica'
+        AND (${condicoes})
       GROUP BY q.id, q.questao, m.tag
       ORDER BY (
         COALESCE(COUNT(CASE WHEN r.tipo = 'like' THEN 1 END), 0) -
@@ -339,18 +350,10 @@ export async function buscarQuestoesParaReaproveitar(
 }
 
 /**
- * Lista todas as tags de matéria cadastradas para filtro
+ * Lista apenas Matemática como matéria disponível
  */
 export async function listarTagsMaterias(): Promise<string[]> {
-  try {
-    const { rows } = await pool.query(
-      'SELECT DISTINCT tag FROM materias_tag ORDER BY tag ASC'
-    );
-    return rows.map((r) => r.tag);
-  } catch (error) {
-    console.error('Erro ao buscar tags de matéria:', error);
-    return [];
-  }
+  return ['Matemática'];
 }
 
 /**
@@ -371,7 +374,11 @@ export async function criarAvaliacaoComQuestoesBanco(
     }
 
     const { rows } = await pool.query(
-      'SELECT id, questao FROM questoes WHERE id = ANY($1::int[])',
+      `SELECT q.id, q.questao
+       FROM questoes q
+       JOIN materias_tag m ON m.id = q.materia_tag_id
+       WHERE q.id = ANY($1::int[])
+         AND TRANSLATE(LOWER(TRIM(COALESCE(m.tag, ''))), ${TRANSLATE_ACENTOS_SQL}) = 'matematica'`,
       [questoesBancoIds]
     );
 

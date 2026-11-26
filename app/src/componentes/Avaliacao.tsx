@@ -55,7 +55,7 @@ export default function Avaliacao({
     setPublicandoIndice(index);
     setErro('');
     try {
-      const res = await publicarQuestaoComunidade(questao, 'Geral');
+      const res = await publicarQuestaoComunidade(questao, 'Matemática');
       if (res.sucesso) {
         setPublicadas((prev) => ({ ...prev, [index]: true }));
         setMensagemSucesso(`Questão #${index + 1} publicada no banco de questões com sucesso!`);
@@ -77,7 +77,7 @@ export default function Avaliacao({
       let count = 0;
       for (let i = 0; i < avaliacao.questoes.length; i++) {
         if (!publicadas[i] && !avaliacao.questoes[i].publicadaNaComunidade) {
-          const res = await publicarQuestaoComunidade(avaliacao.questoes[i], 'Geral');
+          const res = await publicarQuestaoComunidade(avaliacao.questoes[i], 'Matemática');
           if (res.sucesso) {
             count++;
             setPublicadas((prev) => ({ ...prev, [i]: true }));

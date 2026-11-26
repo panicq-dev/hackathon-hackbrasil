@@ -29,7 +29,7 @@ export default function GeradorAvaliativo({ onAvaliacaoGerada }: GeradorAvaliati
   const [turmaSelecionada, setTurmaSelecionada] = useState<string>('');
   const [usarBancoComunidade, setUsarBancoComunidade] = useState(true);
   const [publicarNovasNaComunidade, setPublicarNovasNaComunidade] = useState(false);
-  const [materiaTag, setMateriaTag] = useState('Matemática');
+  const [erroMateria, setErroMateria] = useState('');
   const [carregando, setCarregando] = useState(false);
   const [feedbackEconomia, setFeedbackEconomia] = useState<string | null>(null);
 
@@ -48,8 +48,29 @@ export default function GeradorAvaliativo({ onAvaliacaoGerada }: GeradorAvaliati
     carregarTurmas();
   }, []);
 
+  // Palavras-chave de matérias não-matemáticas para rejeitar
+  const MATERIAS_PROIBIDAS = [
+    'português', 'portugues', 'redação', 'redacao', 'história', 'historia',
+    'geografia', 'biologia', 'química', 'quimica', 'física', 'fisica',
+    'filosofia', 'sociologia', 'inglês', 'ingles', 'artes', 'educação física',
+    'literatura', 'gramática', 'gramatica', 'sintaxe', 'morfologia',
+    'ciências', 'ciencias', 'humanas', 'linguagens', 'natureza',
+  ];
+
+  function ehConteudoMatematica(texto: string): boolean {
+    const lower = texto.toLowerCase();
+    return !MATERIAS_PROIBIDAS.some((palavra) => lower.includes(palavra));
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setErroMateria('');
+
+    if (!ehConteudoMatematica(conteudoPrincipal) || !ehConteudoMatematica(conteudoDetalhado)) {
+      setErroMateria('⚠️ Apenas conteúdos de Matemática são aceitos. Remova termos de outras matérias e tente novamente.');
+      return;
+    }
+
     setCarregando(true);
     setFeedbackEconomia(null);
 
@@ -62,7 +83,6 @@ export default function GeradorAvaliativo({ onAvaliacaoGerada }: GeradorAvaliati
         {
           usarBancoComunidade,
           publicarNovasQuestoes: publicarNovasNaComunidade,
-          materiaTag,
         }
       );
 
@@ -164,45 +184,27 @@ export default function GeradorAvaliativo({ onAvaliacaoGerada }: GeradorAvaliati
           </div>
         </div>
 
-        {/* Conteúdos e Matéria */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="space-y-1 sm:col-span-2">
-            <label className="font-['Baloo_2'] text-sm font-bold text-[#14507F]">
-              Quais conteúdos?
-            </label>
-            <input
-              type="text"
-              value={conteudoPrincipal}
-              onChange={(e) => setConteudoPrincipal(e.target.value)}
-              placeholder="Ex: Equação do Segundo Grau, Bhaskara..."
-              className="w-full rounded-[18px] border-[3px] border-[#0A2E4A] bg-[#EBF5FF] px-3.5 py-2.5 text-xs font-semibold text-[#0A2E4A] shadow-[0_3px_0_0_#0A2E4A] placeholder:font-normal placeholder:text-[#5A7C99] focus:outline-none"
-              required
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="font-['Baloo_2'] text-sm font-bold text-[#14507F]">
-              Matéria / Tag
-            </label>
-            <div className="relative">
-              <select
-                value={materiaTag}
-                onChange={(e) => setMateriaTag(e.target.value)}
-                className="w-full appearance-none rounded-[18px] border-[3px] border-[#0A2E4A] bg-[#EBF5FF] px-3 py-2.5 pr-10 text-xs font-semibold text-[#0A2E4A] shadow-[0_3px_0_0_#0A2E4A] focus:outline-none"
-              >
-                <option value="Matemática">Matemática</option>
-                <option value="Português">Português</option>
-                <option value="Ciências">Ciências</option>
-                <option value="História">História</option>
-                <option value="Física">Física</option>
-                <option value="Geral">Geral</option>
-              </select>
-              <span className="pointer-events-none absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[#0A2E4A] bg-[#FFC53D]">
-                <ChevronDown className="h-3.5 w-3.5 text-[#0A2E4A]" />
-              </span>
-            </div>
-          </div>
+        {/* Conteúdos de Matemática */}
+        <div className="space-y-1">
+          <label className="font-['Baloo_2'] text-sm font-bold text-[#14507F]">
+            Quais conteúdos de Matemática?
+          </label>
+          <input
+            type="text"
+            value={conteudoPrincipal}
+            onChange={(e) => setConteudoPrincipal(e.target.value)}
+            placeholder="Ex: Equação do Segundo Grau, Bhaskara, Funções..."
+            className="w-full rounded-[18px] border-[3px] border-[#0A2E4A] bg-[#EBF5FF] px-3.5 py-2.5 text-xs font-semibold text-[#0A2E4A] shadow-[0_3px_0_0_#0A2E4A] placeholder:font-normal placeholder:text-[#5A7C99] focus:outline-none"
+            required
+          />
         </div>
+
+        {/* Aviso de erro de matéria */}
+        {erroMateria && (
+          <div className="flex items-center gap-2 rounded-[18px] border-2 border-[#8A1F1F] bg-[#FFE3E3] px-4 py-3 text-xs font-extrabold text-[#8A1F1F] shadow-[0_3px_0_0_#8A1F1F]">
+            <span>{erroMateria}</span>
+          </div>
+        )}
 
         {/* Integração com o Banco de Questões */}
         <div className="rounded-[22px] border-2 border-[#0A2E4A] bg-[#F6FBFF] p-3.5 shadow-[0_3px_0_0_#0A2E4A] space-y-2.5">
