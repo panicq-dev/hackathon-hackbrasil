@@ -5,13 +5,9 @@ import { pool } from '@/app/src/db';
 import { obterSessao } from '@/app/src/lib/session';
 import { EstruturaQuestao, QuestaoComunidade } from '@/app/src/types';
 
-/**
- * Garante ou busca o ID da tag 'matemática' na tabela `materias_tag`
- */
 async function obterOuCriarMateriaTagId(): Promise<number> {
   const tagNormalizada = 'matemática';
   
-  // Tenta buscar existente
   const resBusca = await pool.query(
     'SELECT id FROM materias_tag WHERE LOWER(tag) IN ($1, $2) LIMIT 1',
     ['matemática', 'matematica']
@@ -21,7 +17,6 @@ async function obterOuCriarMateriaTagId(): Promise<number> {
     return resBusca.rows[0].id;
   }
 
-  // Insere se não existir
   const resInsert = await pool.query(
     'INSERT INTO materias_tag (tag) VALUES ($1) ON CONFLICT (tag) DO UPDATE SET tag = EXCLUDED.tag RETURNING id',
     [tagNormalizada]
@@ -36,9 +31,6 @@ function ehTagMatematica(tag?: string): boolean {
   return norm === 'matematica';
 }
 
-/**
- * Publica uma questão na Comunidade (Banco de Questões público) - apenas Matemática
- */
 export async function publicarQuestaoComunidade(
   questao: EstruturaQuestao,
   tagMateria: string = 'Matemática'
@@ -56,7 +48,6 @@ export async function publicarQuestaoComunidade(
     const professorId = Number(sessao.id);
     const materiaTagId = await obterOuCriarMateriaTagId();
 
-    // Se a questão já tiver um bancoId existente, atualizamos para pública
     if (questao.bancoId) {
       const resUpdate = await pool.query(
         'UPDATE questoes SET publica = true, materia_tag_id = $1 WHERE id = $2 AND professor_id = $3 RETURNING id',
@@ -68,7 +59,6 @@ export async function publicarQuestaoComunidade(
       }
     }
 
-    // Insere como nova questão pública
     const resInsert = await pool.query(
       `INSERT INTO questoes (professor_id, materia_tag_id, questao, publica)
        VALUES ($1, $2, $3::jsonb, true)
@@ -84,9 +74,6 @@ export async function publicarQuestaoComunidade(
   }
 }
 
-/**
- * Remove a publicação de uma questão da comunidade
- */
 export async function despublicarQuestaoComunidade(
   questaoId: number
 ): Promise<{ sucesso: boolean; erro?: string }> {
@@ -111,9 +98,6 @@ export async function despublicarQuestaoComunidade(
   }
 }
 
-/**
- * Helper para remover acentos em strings para buscas resilientes
- */
 function removerAcentos(texto: string): string {
   return texto
     .toLowerCase()
@@ -123,10 +107,6 @@ function removerAcentos(texto: string): string {
 
 const TRANSLATE_ACENTOS_SQL = `'áàâãäéèêëíìîïóòôõöúùûüç', 'aaaaaeeeeiiiiooooouuuuc'`;
 
-/**
- * Lista as questões públicas da comunidade com contagem de likes/dislikes
- * e garante que questões do próprio professor responsável sempre apareçam
- */
 export async function listarQuestoesComunidade(filtros?: {
   busca?: string;
   tag?: string;
@@ -159,17 +139,14 @@ export async function listarQuestoesComunidade(filtros?: {
     const params: (string | number)[] = [professorId];
     let paramIndex = 2;
 
-    // Filtro apenas minhas questões
     if (filtros?.apenasMinhas) {
       sql += ` AND q.professor_id = $1`;
     }
 
-    // Rejeita qualquer tentativa de filtrar por outra matéria
     if (filtros?.tag && filtros.tag !== 'todas' && !ehTagMatematica(filtros.tag)) {
       return { sucesso: true, questoes: [] };
     }
 
-    // Busca textual resiliente (enunciado, json da questão, matéria e nome do professor)
     if (filtros?.busca && filtros.busca.trim()) {
       const termoNormalizado = `%${removerAcentos(filtros.busca.trim())}%`;
       sql += ` AND (
@@ -215,9 +192,6 @@ export async function listarQuestoesComunidade(filtros?: {
   }
 }
 
-/**
- * Registra ou remove voto (like / dislike) do professor
- */
 export async function votarQuestao(
   questaoId: number,
   tipo: 'like' | 'dislike'
@@ -236,7 +210,6 @@ export async function votarQuestao(
 
     const professorId = Number(sessao.id);
 
-    // Verifica voto atual
     const votoAtualRes = await pool.query(
       'SELECT tipo FROM questoes_reacoes WHERE questao_id = $1 AND professor_id = $2',
       [questaoId, professorId]
@@ -247,28 +220,24 @@ export async function votarQuestao(
     if (votoAtualRes.rows.length > 0) {
       const votoExistente = votoAtualRes.rows[0].tipo;
       if (votoExistente === tipo) {
-        // Clicou no mesmo voto: remove a reação (toggle)
         await pool.query(
           'DELETE FROM questoes_reacoes WHERE questao_id = $1 AND professor_id = $2',
           [questaoId, professorId]
         );
         novoVoto = null;
       } else {
-        // Trocou o voto (ex: like -> dislike)
         await pool.query(
           'UPDATE questoes_reacoes SET tipo = $1, criado_em = NOW() WHERE questao_id = $2 AND professor_id = $3',
           [tipo, questaoId, professorId]
         );
       }
     } else {
-      // Novo voto
       await pool.query(
         'INSERT INTO questoes_reacoes (questao_id, professor_id, tipo) VALUES ($1, $2, $3)',
         [questaoId, professorId, tipo]
       );
     }
 
-    // Retorna os totais atualizados
     const totaisRes = await pool.query(
       `SELECT 
         COALESCE(COUNT(CASE WHEN tipo = 'like' THEN 1 END), 0)::int as "likes",
@@ -289,10 +258,6 @@ export async function votarQuestao(
   }
 }
 
-/**
- * Busca questões públicas no banco para reaproveitar na geração de avaliação
- * Reduzindo uso de tokens na IA
- */
 export async function buscarQuestoesParaReaproveitar(
   conteudosPrincipais: string,
   quantidadeDesejada: number
@@ -300,7 +265,6 @@ export async function buscarQuestoesParaReaproveitar(
   try {
     if (!conteudosPrincipais || quantidadeDesejada <= 0) return [];
 
-    // Limpa palavras curtas para busca de palavras-chave e normaliza acentos
     const palavras = conteudosPrincipais
       .split(/\s+/)
       .map((p) => removerAcentos(p.replace(/[^a-zA-Z0-9À-ÿ]/g, '').trim()))
@@ -308,7 +272,6 @@ export async function buscarQuestoesParaReaproveitar(
 
     if (palavras.length === 0) return [];
 
-    // Monta cláusula OR com ILIKE e TRANSLATE para ignorar acentos
     const condicoes = palavras
       .map((_, i) => `(
         TRANSLATE(LOWER(COALESCE(q.questao->>'enunciado', '')), ${TRANSLATE_ACENTOS_SQL}) ILIKE $${i + 1}
@@ -356,16 +319,10 @@ export async function buscarQuestoesParaReaproveitar(
   }
 }
 
-/**
- * Lista apenas Matemática como matéria disponível
- */
 export async function listarTagsMaterias(): Promise<string[]> {
   return ['Matemática'];
 }
 
-/**
- * Cria uma nova avaliação a partir de questões selecionadas na comunidade (Zero Tokens!)
- */
 export async function criarAvaliacaoComQuestoesBanco(
   questoesBancoIds: number[],
   turmaId?: string

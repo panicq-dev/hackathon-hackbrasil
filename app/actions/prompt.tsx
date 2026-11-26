@@ -6,12 +6,17 @@ import { Avaliacoes, EstruturaQuestao } from '../src/types/index';
 import { pool } from '../src/db';
 import { obterSessao } from '../src/lib/session';
 import { buscarQuestoesParaReaproveitar, publicarQuestaoComunidade } from './questoes';
+import { CAUSAS_RAIZ_CANONICAS } from '../src/lib/causasRaiz';
+import {
+  detectarMateriaProibida,
+  ehTagMatematica,
+  normalizarQuestoesGeradas,
+} from '../src/lib/matematicaFiltro';
 
 const ia = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
 });
 
-// Inicialização sob demanda do Groq para evitar chamadas/instanciação desnecessárias na inicialização de módulos
 let groqClient: Groq | null = null;
 function obterClienteGroq(): Groq {
   if (!groqClient) {
@@ -103,36 +108,20 @@ export async function gerarAvaliacao(
       }
     }
 
-    // Guard: rejeita se conteúdo não for de Matemática
-    const MATERIAS_PROIBIDAS = [
-      'português', 'portugues', 'redação', 'redacao', 'história', 'historia',
-      'geografia', 'biologia', 'química', 'quimica', 'física', 'fisica',
-      'filosofia', 'sociologia', 'inglês', 'ingles', 'artes', 'literatura',
-      'gramática', 'gramatica', 'sintaxe', 'morfologia', 'ciências', 'ciencias',
-    ];
-    const textoParaValidar = (conteudos_principais + ' ' + conteudos_detalhados).toLowerCase();
-    const materiaProibida = MATERIAS_PROIBIDAS.find((m) => textoParaValidar.includes(m));
+    const materiaProibida = detectarMateriaProibida(`${conteudos_principais} ${conteudos_detalhados}`);
     if (materiaProibida) {
       console.warn(`[gerarAvaliacao] Conteúdo bloqueado: matéria proibida detectada (${materiaProibida})`);
       return null;
     }
 
-    if (opcoes?.materiaTag) {
-      const tagNorm = opcoes.materiaTag
-        .trim()
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '');
-      if (tagNorm !== 'matematica') {
-        console.warn(`[gerarAvaliacao] Matéria bloqueada: ${opcoes.materiaTag}`);
-        return null;
-      }
+    if (!ehTagMatematica(opcoes?.materiaTag)) {
+      console.warn(`[gerarAvaliacao] Matéria bloqueada: ${opcoes?.materiaTag}`);
+      return null;
     }
 
     const usarBanco = opcoes?.usarBancoComunidade ?? true;
     let questoesDoBanco: EstruturaQuestao[] = [];
 
-    // 1. Tenta reaproveitar questões da comunidade se solicitado
     if (usarBanco) {
       questoesDoBanco = await buscarQuestoesParaReaproveitar(
         conteudos_principais,
@@ -144,7 +133,6 @@ export async function gerarAvaliacao(
     const qtdParaGerar = Math.max(0, quantidadeQuestoes - qtdReaproveitada);
     let novasQuestoes: EstruturaQuestao[] = [];
 
-    // 2. Se ainda faltam questões, chama o modelo Gemini IA para gerar o restante
     if (qtdParaGerar > 0) {
       const prompt = `Você é um especialista em elaboração de questões de Matemática para vestibulares e concursos de ingresso ao Ensino Médio (ETEC, FUVEST, ENEM, VUNESP, FCC, Escola Técnica, entre outros).
 
@@ -160,12 +148,15 @@ REGRAS OBRIGATÓRIAS PARA CADA QUESTÃO:
 3. Cada questão deve exigir MÚLTIPLAS ETAPAS de resolução (pelo menos 2 passos matemáticos distintos).
 4. Os campos de validação devem representar CADA ETAPA intermediária e o resultado final. Exemplos de campos:
    - "Discriminante (Δ)", "Valor de x₁", "Valor de x₂", "Resultado final", "Equação montada", "Volume calculado (cm³)"
-5. O mapeamentoDeErros deve indicar com precisão a lacuna de aprendizagem matemática associada a cada campo. Exemplos: "Cálculo de discriminante", "Regra de sinais na multiplicação", "Conversão de unidades de medida", "Interpretação de gráfico cartesiano".
+5. O mapeamentoDeErros deve indicar com precisão a lacuna de aprendizagem matemática associada a cada campo.
+   - PADRONIZAÇÃO OBRIGATÓRIA DE CAUSAS RAIZ: escolha preferencialmente um nome exato da lista canônica abaixo e NUNCA crie variações sinônimas ou de singular/plural (ex.: nunca misture "Soma de Frações" com "Soma de Fração", nem "Equação de 2º Grau" com "Equações do Segundo Grau").
+   - Lista canônica de causas raiz: ${CAUSAS_RAIZ_CANONICAS.join(', ')}.
+   - Quando duas ou mais questões/campos avaliarem a mesma habilidade, reutilize EXATAMENTE o mesmo nome de erroProvavel para permitir detectar erros recorrentes.
 6. JAMAIS gere questões de outras matérias (Português, História, Ciências, Física, etc.). Apenas Matemática pura.
-7. Gere EXATAMENTE ${quantidadeQuestoes} questões no array "questoes".
+7. Gere EXATAMENTE ${qtdParaGerar} questões no array "questoes".
 8. Cada questão deve ter no MÍNIMO 3 campos de validação (etapas).
 9. Os IDs dos campos de validação e mapeamento de erros devem ser únicos, sem espaços, em camelCase (ex.: "deltaBhaskara", "valorX1", "resultadoFinal").
-10. O IDs do mapeamentoDeErros devem referenciar exatamente os IDs dos campos de validação correspondentes.
+10. GARANTIA DE VALIDAÇÃO EXISTENTE: todo campo em "camposValidacao" DEVE ter exatamente um item correspondente em "mapeamentoDeErros" com o MESMO "id", e nenhum item de "mapeamentoDeErros" pode referenciar um "id" inexistente.
 
 ESTILOS DE QUESTÃO PARA VARIAR (escolha diferentes para cada questão):
 - Problema de aplicação com dados reais (porcentagem, juros simples/compostos, desconto)
@@ -181,7 +172,6 @@ Lembre-se: questão estilo vestibular = enunciado rico + dados concretos + resol
       const MODELOS_GEMINI = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
       let textoResposta: string | null = null;
 
-      // Tenta cada modelo Gemini em cascata
       for (const modelo of MODELOS_GEMINI) {
         try {
           const interacao = await ia.models.generateContent({
@@ -209,7 +199,6 @@ Lembre-se: questão estilo vestibular = enunciado rico + dados concretos + resol
             console.warn(`Gemini ${modelo} indisponivel (${status}), tentando proximo...`);
             continue;
           }
-          // Todos os Gemini falharam — tenta Groq como fallback final
           console.warn(`Todos os modelos Gemini falharam, usando Groq como fallback...`);
           try {
             const clienteGroq = obterClienteGroq();
@@ -241,9 +230,8 @@ Lembre-se: questão estilo vestibular = enunciado rico + dados concretos + resol
 
       if (textoResposta) {
         const conteudo = JSON.parse(textoResposta);
-        novasQuestoes = conteudo.questoes || [];
+        novasQuestoes = normalizarQuestoesGeradas(conteudo.questoes || []);
 
-        // 3. Se optou por publicar novas na comunidade, persiste cada uma no database (sempre como Matemática)
         if (opcoes?.publicarNovasQuestoes && novasQuestoes.length > 0) {
           for (const q of novasQuestoes) {
             const pub = await publicarQuestaoComunidade(q, 'Matemática');
@@ -256,7 +244,6 @@ Lembre-se: questão estilo vestibular = enunciado rico + dados concretos + resol
       }
     }
 
-    // Combina questões do banco com as geradas
     const questoesFinais: EstruturaQuestao[] = [...questoesDoBanco, ...novasQuestoes].slice(0, quantidadeQuestoes);
 
     if (questoesFinais.length === 0) {
@@ -268,7 +255,6 @@ Lembre-se: questão estilo vestibular = enunciado rico + dados concretos + resol
 
     const conteudoCompleto = { questoes: questoesFinais };
 
-    // Serializa o JSON explicitamente para evitar erro de sintaxe no pg
     const { rows } = await pool.query(
       `INSERT INTO avaliacoes (conteudo, professor_id, turma_id) 
        VALUES ($1::jsonb, $2, $3) 

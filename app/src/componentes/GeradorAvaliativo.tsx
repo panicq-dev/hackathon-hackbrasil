@@ -16,6 +16,7 @@ import { useState, useEffect } from "react";
 import { gerarAvaliacao, GerarAvaliacaoResultado } from "@/app/actions/prompt";
 import { listarTurmasProfessor, TurmaItem } from "@/app/actions/turmas";
 import { Avaliacoes } from "@/app/src/types/index";
+import { ehConteudoMatematica } from "@/app/src/lib/matematicaFiltro";
 
 type GeradorAvaliativoProps = {
   onAvaliacaoGerada: (novaAvaliacao: Avaliacoes) => void;
@@ -47,20 +48,6 @@ export default function GeradorAvaliativo({ onAvaliacaoGerada }: GeradorAvaliati
     }
     carregarTurmas();
   }, []);
-
-  // Palavras-chave de matérias não-matemáticas para rejeitar
-  const MATERIAS_PROIBIDAS = [
-    'português', 'portugues', 'redação', 'redacao', 'história', 'historia',
-    'geografia', 'biologia', 'química', 'quimica', 'física', 'fisica',
-    'filosofia', 'sociologia', 'inglês', 'ingles', 'artes', 'educação física',
-    'literatura', 'gramática', 'gramatica', 'sintaxe', 'morfologia',
-    'ciências', 'ciencias', 'humanas', 'linguagens', 'natureza',
-  ];
-
-  function ehConteudoMatematica(texto: string): boolean {
-    const lower = texto.toLowerCase();
-    return !MATERIAS_PROIBIDAS.some((palavra) => lower.includes(palavra));
-  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

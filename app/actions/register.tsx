@@ -3,10 +3,6 @@
 import bcrypt from "bcryptjs";
 import { pool } from "@/app/src/db";
 
-// ==========================================
-// 1. TIPOS
-// ==========================================
-
 type Perfil = "professor" | "aluno";
 
 type Dados = {
@@ -24,25 +20,15 @@ type Resultado = {
   erro?: string;
 };
 
-// Erros do NpgSQ
 type PostgresError = Error & {
   code?: string;
   constraint?: string;
   table?: string;
 };
 
-// ==========================================
-// 2. CONSTANTES
-// ==========================================
-
-// REGEX
 const TURMA_CODE_REGEX = /^[a-z0-9]{1,8}$/i;
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-// ==========================================
-// 3. FUNÇÕES AUXILIARES
-// ==========================================
 
 function erro(mensagem: string): Resultado {
   return { erro: mensagem };
@@ -69,7 +55,6 @@ function identificarErroBanco(e: unknown): Resultado {
     table: pgError.table,
   });
 
-  // Violação de UNIQUE
   if (pgError.code === "23505") {
     const constraint = pgError.constraint?.toLowerCase() ?? "";
 
@@ -84,22 +69,18 @@ function identificarErroBanco(e: unknown): Resultado {
     return erro("Já existe um registro com esses dados.");
   }
 
-  // CHAVE ESTRANG.
+  // Foreign-key violation
   if (pgError.code === "23503") {
     return erro("A turma informada não foi encontrada.");
   }
 
-  // NOT NULL
+  // Required-column violation
   if (pgError.code === "23502") {
     return erro("Preencha todos os campos obrigatórios.");
   }
 
   return erro("Não foi possível criar a conta. Tente novamente.");
 }
-
-// ==========================================
-// 4. REGISTRAR USUÁRIO
-// ==========================================
 
 export async function registrarUsuario(d: Dados): Promise<Resultado> {
   try {
@@ -144,15 +125,7 @@ export async function registrarUsuario(d: Dados): Promise<Resultado> {
       return erro("A senha ultrapassa o limite permitido.");
     }
 
-    // --------------------------------------
-    // HASH DA SENHA
-    // --------------------------------------
-
     const senhaHash = await bcrypt.hash(senha, 10);
-
-    // --------------------------------------
-    // CADASTRO DO PROFESSOR
-    // --------------------------------------
 
     if (d.perfil === "professor") {
       await pool.query(
@@ -167,10 +140,6 @@ export async function registrarUsuario(d: Dados): Promise<Resultado> {
 
       return { ok: true };
     }
-
-    // --------------------------------------
-    // CADASTRO DO ALUNO
-    // --------------------------------------
 
     const turmaId =
       typeof d.idTurma === "string" ? d.idTurma.trim() : "";
@@ -194,7 +163,6 @@ export async function registrarUsuario(d: Dados): Promise<Resultado> {
       return erro("A matrícula deve ter no máximo 50 caracteres.");
     }
 
-    // Turma existe?
     const turma = await pool.query<{ id: string }>(
       `
         SELECT id
@@ -209,7 +177,6 @@ export async function registrarUsuario(d: Dados): Promise<Resultado> {
       return erro("ID da turma inválido.");
     }
 
-    // Inserindo alunos db
     await pool.query(
       `
         INSERT INTO alunos

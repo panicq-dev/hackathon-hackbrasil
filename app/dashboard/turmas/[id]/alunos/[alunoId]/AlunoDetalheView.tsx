@@ -328,7 +328,12 @@ export default function AlunoDetalheView({
                   ? <AlertTriangle className="h-5 w-5" />
                   : <CheckCircle2 className="h-5 w-5" />}
               />
-              <CartaoIndicador rotulo="MÉDIA DA TURMA" valor={formatarPercentual(estatisticas.mediaTurma)} detalhe={estatisticas.diferencaDaTurma === null ? "Sem comparação neste período" : `${estatisticas.diferencaDaTurma > 0 ? "+" : ""}${estatisticas.diferencaDaTurma} pontos em relação à turma`} cor="bg-[#BFE3F7]" />
+              <CartaoIndicador
+                rotulo="ÍNDICE GERAL DA TURMA"
+                valor={formatarPercentual(estatisticas.mediaTurma)}
+                detalhe="Aproveitamento geral registrado no período"
+                cor="bg-[#BFE3F7]"
+              />
               <CartaoIndicador
                 rotulo="ENTREGAS"
                 valor={`${estatisticas.totalRespondidas}/${estatisticas.totalAvaliacoes}`}
@@ -390,7 +395,7 @@ export default function AlunoDetalheView({
             <section className="rounded-[28px] border-[3px] border-[#0A2E4A] bg-white p-5 shadow-[0_5px_0_0_#0A2E4A]">
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <TituloSecao titulo="Evolução do desempenho" descricao="Compare a trajetória do aluno com a média da turma em cada avaliação respondida." />
+                  <TituloSecao titulo="Evolução do desempenho" descricao="Acompanhe a trajetória individual do aluno em cada avaliação respondida." />
                 </div>
                 <span className={`inline-flex items-center gap-2 rounded-full border-2 border-[#0A2E4A] px-3 py-1 text-xs font-extrabold ${estatisticas.tendencia === "melhora" ? "bg-[#D1F2D9]" : estatisticas.tendencia === "queda" ? "bg-[#FFE3E3]" : "bg-[#FFEFC2]"}`}>
                   {estatisticas.tendencia === "queda" ? <TrendingDown className="h-4 w-4" /> : <TrendingUp className="h-4 w-4" />}
@@ -402,23 +407,24 @@ export default function AlunoDetalheView({
                   Ainda não há avaliações respondidas para visualizar a evolução.
                 </p>
               ) : (
-                <div className="grid grid-cols-2 items-end gap-3 pb-2 sm:grid-cols-4 lg:grid-cols-6">
+                <div className="flex w-full items-end gap-3 overflow-x-auto pb-2">
                   {estatisticas.evolucao.map((ponto) => (
-                    <div key={ponto.avaliacaoId} className="text-center">
-                      <p className="mb-2 text-xs font-extrabold">{ponto.percentual}% <span className="font-bold text-[#4A6B85]">/ {formatarPercentual(ponto.mediaTurma)}</span></p>
-                      <div className="flex h-36 items-end justify-center gap-2 rounded-t-xl bg-[#F6FBFF] px-2">
-                        <div role="img" aria-label={`Aluno: ${ponto.percentual}%`} title={`Aluno: ${ponto.percentual}%`} className="w-7 rounded-t-lg border-2 border-b-0 border-[#0A2E4A] bg-[#FFC53D]" style={{ height: `${Math.max(ponto.percentual, 4)}%` }} />
-                        {ponto.mediaTurma !== null && <div role="img" aria-label={`Média da turma: ${ponto.mediaTurma}%`} title={`Média da turma: ${ponto.mediaTurma}%`} className="w-7 rounded-t-lg border-2 border-b-0 border-[#0A2E4A] bg-[#4ECDC4]" style={{ height: `${Math.max(ponto.mediaTurma, 4)}%` }} />}
+                    <div key={ponto.avaliacaoId} className="min-w-[72px] flex-1 text-center">
+                      <p className="mb-2 text-xs font-extrabold">{ponto.percentual}%</p>
+                      <div className="flex h-36 items-end justify-center rounded-t-xl bg-[#F6FBFF] px-2">
+                        <div
+                          role="img"
+                          aria-label={`Aproveitamento na avaliação: ${ponto.percentual}%`}
+                          title={`Aproveitamento: ${ponto.percentual}%`}
+                          className="w-full max-w-[64px] rounded-t-lg border-2 border-b-0 border-[#0A2E4A] bg-[#FFC53D]"
+                          style={{ height: `${Math.max(ponto.percentual, 4)}%` }}
+                        />
                       </div>
                       <p className="mt-2 text-[10px] font-bold text-[#4A6B85]">{formatarData(ponto.criadoEm)}</p>
                     </div>
                   ))}
                 </div>
               )}
-              <div className="mt-3 flex flex-wrap gap-4 text-xs font-bold text-[#4A6B85]">
-                <span className="inline-flex items-center gap-2"><i className="h-3 w-3 rounded-sm border border-[#0A2E4A] bg-[#FFC53D]" /> Aluno</span>
-                <span className="inline-flex items-center gap-2"><i className="h-3 w-3 rounded-sm border border-[#0A2E4A] bg-[#4ECDC4]" /> Média da turma</span>
-              </div>
             </section>
 
             <div className="grid gap-5 lg:grid-cols-2">
@@ -475,8 +481,16 @@ export default function AlunoDetalheView({
                       <p className="mt-2 text-sm font-bold">{questao.enunciado}</p>
                       <p className="mt-1 text-xs font-semibold text-[#4A6B85]">{questao.campoLabel}</p>
                       <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                        <p className="rounded-xl bg-white p-2 text-xs"><span className="block font-extrabold text-[#4A6B85]">Resposta dada</span><span className="font-bold">{questao.respostaDada === null || String(questao.respostaDada).trim() === "" ? "Em branco" : String(questao.respostaDada)}</span></p>
-                        <p className="rounded-xl bg-[#D1F2D9]/70 p-2 text-xs"><span className="block font-extrabold text-[#4A6B85]">Resposta esperada</span><span className="font-bold">{questao.respostaEsperada}</span></p>
+                        <p className="min-w-0 overflow-hidden rounded-xl bg-white p-2 text-xs">
+                          <span className="block font-extrabold text-[#4A6B85]">Resposta dada</span>
+                          <span className="block break-all font-bold">
+                            {questao.respostaDada === null || String(questao.respostaDada).trim() === "" ? "Em branco" : String(questao.respostaDada)}
+                          </span>
+                        </p>
+                        <p className="min-w-0 overflow-hidden rounded-xl bg-[#D1F2D9]/70 p-2 text-xs">
+                          <span className="block font-extrabold text-[#4A6B85]">Resposta esperada</span>
+                          <span className="block break-all font-bold">{questao.respostaEsperada}</span>
+                        </p>
                       </div>
                     </li>
                   ))}

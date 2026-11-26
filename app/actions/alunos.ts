@@ -74,8 +74,6 @@ function interpretarInsights(texto: string): InsightsAluno | null {
 function criarPrompt(estatisticas: EstatisticasAluno): string {
   const contexto = {
     taxaAcerto: estatisticas.percentual,
-    mediaDaTurma: estatisticas.mediaTurma,
-    diferencaDaTurma: estatisticas.diferencaDaTurma,
     entregas: `${estatisticas.totalRespondidas}/${estatisticas.totalAvaliacoes}`,
     pendencias: estatisticas.pendencias,
     camposEmBranco: estatisticas.camposEmBranco,
@@ -92,7 +90,7 @@ function criarPrompt(estatisticas: EstatisticasAluno): string {
     })),
   };
 
-  return `Você é um assistente pedagógico que apoia professores com sugestões práticas, respeitosas e baseadas em evidências. Analise somente os indicadores fornecidos; não faça diagnósticos clínicos nem rotule o estudante. Priorize até três habilidades que merecem intervenção, proponha estratégias concretas de sala de aula e uma forma simples de acompanhar o progresso. Se faltarem dados, deixe isso explícito. Responda em português do Brasil como JSON válido no formato {"resumo":"...","prioridades":["..."],"estrategias":["..."],"acompanhamento":"..."}.
+  return `Você é um assistente pedagógico que apoia professores com sugestões práticas, respeitosas e baseadas em evidências. Analise somente os indicadores individuais fornecidos; não compare o estudante com outros alunos ou com a turma, não faça diagnósticos clínicos nem rotule o estudante. Priorize até três habilidades que merecem intervenção, proponha estratégias concretas de sala de aula e uma forma simples de acompanhar o progresso individual. Se faltarem dados, deixe isso explícito. Responda em português do Brasil como JSON válido no formato {"resumo":"...","prioridades":["..."],"estrategias":["..."],"acompanhamento":"..."}.
 
 Indicadores agregados e anônimos:
 ${JSON.stringify(contexto)}`;

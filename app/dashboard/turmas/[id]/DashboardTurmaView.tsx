@@ -326,7 +326,7 @@ export default function DashboardTurmaView({
                 <p className="font-sans text-2xl font-extrabold">
                   {carregando ? "—" : desempenho?.mediaTurma === null ? "—" : `${desempenho?.mediaTurma}%`}
                 </p>
-                <p className="text-xs font-semibold text-[#4A6B85]">Média dos alunos com respostas</p>
+                <p className="text-xs font-semibold text-[#4A6B85]">Índice geral das respostas registradas</p>
               </div>
             </article>
             <article className="flex items-center gap-3 rounded-[22px] border-[3px] border-[#0A2E4A] bg-white p-4 shadow-[0_4px_0_0_#0A2E4A]">
@@ -420,15 +420,15 @@ export default function DashboardTurmaView({
                     Ainda não há respostas para montar a evolução neste período.
                   </p>
                 ) : (
-                  <div className="grid grid-cols-2 items-end gap-3 pt-2 sm:grid-cols-4 lg:grid-cols-6">
+                  <div className="flex w-full items-end gap-3 overflow-x-auto pt-2">
                     {dificuldades.evolucao.map((ponto) => (
-                      <div key={ponto.avaliacaoId} className="min-w-[58px] text-center">
+                      <div key={ponto.avaliacaoId} className="min-w-[72px] flex-1 text-center">
                         <p className="mb-1 text-xs font-extrabold">{ponto.percentual}%</p>
-                        <div className="flex h-32 items-end justify-center rounded-t-xl bg-[#DCECF8]">
+                        <div className="flex h-36 items-end justify-center rounded-t-xl bg-[#DCECF8] px-2">
                           <div
                             role="img"
-                            aria-label={`Média da avaliação: ${ponto.percentual}%`}
-                            className="w-8 rounded-t-lg border-2 border-b-0 border-[#0A2E4A] bg-[#4ECDC4]"
+                            aria-label={`Aproveitamento da avaliação: ${ponto.percentual}%`}
+                            className="w-full max-w-[64px] rounded-t-lg border-2 border-b-0 border-[#0A2E4A] bg-[#4ECDC4]"
                             style={{ height: `${Math.max(ponto.percentual, 4)}%` }}
                           />
                         </div>
@@ -553,7 +553,7 @@ export default function DashboardTurmaView({
               className="flex items-center gap-2 rounded-[14px] border-2 border-[#0A2E4A] bg-[#EBF5FF] px-3 py-2.5 text-xs font-extrabold shadow-[0_2px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5"
             >
               <ArrowUpDown className="h-3.5 w-3.5" />
-              {ordenacao === "nome" ? "Nome do aluno" : "Maior aproveitamento"}
+              {ordenacao === "nome" ? "Nome do aluno" : "Por aproveitamento"}
             </button>
           </div>
 
@@ -664,7 +664,7 @@ export default function DashboardTurmaView({
           )}
 
           <p className="mt-5 text-xs font-semibold text-[#4A6B85]">
-            Os percentuais consideram respostas corretas sobre o total de campos de resposta; campos corretos contam proporcionalmente. Alunos sem avaliação respondida ficam sem classificação.
+            Os percentuais consideram respostas corretas sobre o total de campos de resposta; campos corretos contam proporcionalmente. Alunos sem avaliação respondida ficam sem registro de avaliação.
           </p>
         </section>}
       </main>

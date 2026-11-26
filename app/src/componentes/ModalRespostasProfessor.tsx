@@ -307,7 +307,6 @@ export default function ModalRespostasProfessor({ avaliacaoId, onFechar }: Modal
               </div>
             </div>
           ) : (
-            /* Aba de Análise Manual JSON */
             <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-[#0A2E4A] bg-[#EBF5FF] p-4 shadow-[0_3px_0_0_#0A2E4A]">
                 <div>

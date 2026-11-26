@@ -7,6 +7,11 @@ import {
   RespostaParaDesempenho,
 } from "./desempenho";
 import { CampoValidacao, EstruturaQuestao } from "@/app/src/types";
+import {
+  agruparCausasRaiz,
+  canonicalizarCausaRaiz,
+  MINIMO_ERROS_CAUSA_RAIZ,
+} from "./causasRaiz";
 
 const CAUSA_GERAL = "Conceito geral do conteúdo";
 
@@ -97,18 +102,19 @@ function listarCampos(questoes: EstruturaQuestao[]): { questao: EstruturaQuestao
 
 function obterCausaRaiz(questao: EstruturaQuestao, campoId: string): string {
   const mapeamento = questao.mapeamentoDeErros?.find((item) => item.id === campoId);
-  return mapeamento?.erroProvavel?.trim() || CAUSA_GERAL;
+  return canonicalizarCausaRaiz(mapeamento?.erroProvavel ?? "", CAUSA_GERAL);
 }
 
 function calcularRankingCausas(contagens: Map<string, number>): CausaRaizEstatistica[] {
-  const totalErros = Array.from(contagens.values()).reduce((total, quantidade) => total + quantidade, 0);
-  return Array.from(contagens.entries())
-    .map(([causaRaiz, total]) => ({
-      causaRaiz,
-      totalErros: total,
-      percentualSobreErros: totalErros > 0 ? Math.round((total / totalErros) * 100) : 0,
-    }))
-    .sort((a, b) => b.totalErros - a.totalErros || a.causaRaiz.localeCompare(b.causaRaiz, "pt-BR"));
+  const confirmadas = agruparCausasRaiz(contagens.entries(), MINIMO_ERROS_CAUSA_RAIZ);
+  const totalErrosConfirmados = confirmadas.reduce((total, item) => total + item.totalErros, 0);
+  return confirmadas.map((item) => ({
+    causaRaiz: item.causaRaiz,
+    totalErros: item.totalErros,
+    percentualSobreErros: totalErrosConfirmados > 0
+      ? Math.round((item.totalErros / totalErrosConfirmados) * 100)
+      : 0,
+  }));
 }
 
 export function calcularEstatisticasAluno(

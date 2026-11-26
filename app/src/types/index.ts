@@ -1,7 +1,5 @@
-// Perfil
 export type Perfil = 'professor' | 'aluno';
 
- // Questão
 export interface CampoValidacao {
   id: string;               
   label: string;            
@@ -41,7 +39,6 @@ export interface QuestaoComunidade {
   ehMinha: boolean;
 }
 
-// Avaliação
 export interface AvaliacaoProps {
   avaliacao?: Avaliacoes | null;
 }
