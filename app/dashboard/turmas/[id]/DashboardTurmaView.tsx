@@ -14,9 +14,11 @@ import {
   Search,
   Target,
   TrendingUp,
+  Trash2,
   UserRound,
   Users,
 } from "lucide-react";
+import { enviarParaLixeira } from "@/app/actions/lixeira";
 import { obterDesempenhoDaTurma } from "@/app/actions/turmas";
 import type { DesempenhoTurma } from "@/app/actions/turmas";
 import { obterDificuldadesDaTurma } from "@/app/actions/alunos";
@@ -72,6 +74,29 @@ export default function DashboardTurmaView({
   const [dificuldades, setDificuldades] = useState<DificuldadesTurma | null>(null);
   const [carregandoDificuldades, setCarregandoDificuldades] = useState(false);
   const [erroDificuldades, setErroDificuldades] = useState("");
+  const [erroLixeira, setErroLixeira] = useState("");
+  const [alunoEmOperacao, setAlunoEmOperacao] = useState<number | null>(null);
+
+  async function arquivarAluno(alunoId: number, alunoNome: string) {
+    if (!window.confirm(`Mover o aluno "${alunoNome}" para a lixeira?`)) return;
+
+    setAlunoEmOperacao(alunoId);
+    setErroLixeira("");
+    try {
+      const resultado = await enviarParaLixeira("aluno", String(alunoId));
+      if (resultado.erro) {
+        setErroLixeira(resultado.erro);
+        return;
+      }
+      setRecarga((atual) => atual + 1);
+    } catch (falha) {
+      setErroLixeira(
+        falha instanceof Error ? falha.message : "Não foi possível mover o aluno para a lixeira."
+      );
+    } finally {
+      setAlunoEmOperacao(null);
+    }
+  }
 
   useEffect(() => {
     let ativo = true;
@@ -278,6 +303,11 @@ export default function DashboardTurmaView({
             </button>
           </div>
         )}
+        {erroLixeira && (
+          <p role="alert" className="mb-6 rounded-[20px] border-2 border-red-700 bg-red-50 px-4 py-3 text-sm font-bold text-red-800">
+            {erroLixeira}
+          </p>
+        )}
 
         {abaAtiva === "desempenho" && <section className="mb-7">
           <h2 className="font-sans text-xl font-extrabold">
@@ -390,7 +420,7 @@ export default function DashboardTurmaView({
                     Ainda não há respostas para montar a evolução neste período.
                   </p>
                 ) : (
-                  <div className="grid grid-flow-col auto-cols-fr items-end gap-3 overflow-x-auto pt-2">
+                  <div className="grid grid-cols-2 items-end gap-3 pt-2 sm:grid-cols-4 lg:grid-cols-6">
                     {dificuldades.evolucao.map((ponto) => (
                       <div key={ponto.avaliacaoId} className="min-w-[58px] text-center">
                         <p className="mb-1 text-xs font-extrabold">{ponto.percentual}%</p>
@@ -446,7 +476,7 @@ export default function DashboardTurmaView({
                   {!dificuldades?.questoesCriticas.length ? (
                     <p className="py-5 text-sm font-semibold text-[#4A6B85]">Sem questões com erros neste período.</p>
                   ) : (
-                    <ul className="max-h-72 space-y-2 overflow-y-auto">
+                    <ul className="space-y-2">
                       {dificuldades.questoesCriticas.slice(0, 8).map((questao) => (
                         <li key={`${questao.avaliacaoId}-${questao.numeroQuestao}`} className="rounded-xl bg-[#FFF6DF] p-3 text-xs">
                           <div className="flex justify-between gap-2 font-extrabold">
@@ -556,7 +586,7 @@ export default function DashboardTurmaView({
               {alunosVisiveis.map((aluno) => (
                 <article
                   key={aluno.id}
-                  className="rounded-[24px] border-[3px] border-[#0A2E4A] bg-white p-4 text-center shadow-[0_5px_0_0_#0A2E4A]"
+                  className="relative rounded-[24px] border-[3px] border-[#0A2E4A] bg-white p-4 text-center shadow-[0_5px_0_0_#0A2E4A]"
                 >
                   <Link
                     href={`/dashboard/turmas/${encodeURIComponent(turmaId)}/alunos/${aluno.id}?ano=${ano}&bimestre=${bimestre ?? "ano"}`}
@@ -618,6 +648,16 @@ export default function DashboardTurmaView({
                       </ul>
                     </details>
                   )}
+                  <button
+                    type="button"
+                    aria-label={`Mover ${aluno.nome} para a lixeira`}
+                    title="Mover aluno para a lixeira"
+                    disabled={alunoEmOperacao === aluno.id}
+                    onClick={() => void arquivarAluno(aluno.id, aluno.nome)}
+                    className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border-2 border-red-700 bg-red-100 text-red-700 shadow-[0_2px_0_0_#991B1B] transition hover:bg-red-200 disabled:opacity-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </article>
               ))}
             </div>

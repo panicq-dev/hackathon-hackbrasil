@@ -56,15 +56,14 @@ test("calcula causas raiz, campos em branco e resposta esperada versus dada", ()
   assert.equal(resultado.questoesCriticas[0].respostaEsperada, "1/2");
 });
 
-test("calcula evolução, tendência e posição considerando apenas alunos com resultado", () => {
+test("calcula evolução, tendência e faixa de acompanhamento sem classificar alunos", () => {
   const resultado = calcularEstatisticasAluno(1, alunos, avaliacoes, respostas);
 
   assert.ok(resultado);
   assert.deepEqual(resultado.evolucao.map((ponto) => ponto.percentual), [50, 100]);
   assert.equal(resultado.tendencia, "melhora");
   assert.equal(resultado.variacaoRecente, 50);
-  assert.equal(resultado.posicaoNaTurma, 1);
-  assert.equal(resultado.totalAlunosComDesempenho, 2);
+  assert.equal(resultado.faixa, "desenvolvimento");
 });
 
 test("calcula pendências e retorna indicadores neutros para aluno sem respostas", () => {
@@ -75,7 +74,7 @@ test("calcula pendências e retorna indicadores neutros para aluno sem respostas
   assert.equal(resultado.totalRespondidas, 0);
   assert.equal(resultado.pendencias, 2);
   assert.equal(resultado.taxaEntrega, 0);
-  assert.equal(resultado.posicaoNaTurma, null);
+  assert.equal(resultado.faixa, "sem-avaliacao");
   assert.equal(resultado.tendencia, "sem-dados");
   assert.deepEqual(resultado.causasRaiz, []);
   assert.deepEqual(resultado.porTipoCampo, []);

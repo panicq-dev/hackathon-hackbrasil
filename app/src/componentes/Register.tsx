@@ -4,6 +4,7 @@
 import { registrarUsuario } from "@/app/actions/register";
 import { Eye, EyeOff, Mail, Lock, User, Hash, UserPlus, Star } from "lucide-react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Perfil } from "@/app/src/types/index";
 
 const INK = "#0A2E4A";
@@ -39,6 +40,7 @@ const tabClass = (ativa: boolean) =>
   }`;
 
 export default function Register() {
+  const router = useRouter();
   const [perfil, setPerfil] = useState<Perfil>('professor');
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -85,7 +87,7 @@ export default function Register() {
         return;
       }
 
-      window.location.href = '/login';
+      router.replace('/login');
 
     } catch {
       setErro('Não foi possível criar a conta. Tente novamente.');

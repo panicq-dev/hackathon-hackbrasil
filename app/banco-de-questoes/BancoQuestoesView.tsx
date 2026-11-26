@@ -27,17 +27,19 @@ import {
   User,
   PlusCircle,
   X,
+  Trash2,
 } from 'lucide-react';
 import { UsuarioSessao } from '@/app/src/lib/session';
 import { logoutUsuario } from '@/app/actions/login';
 import { QuestaoComunidade } from '@/app/src/types';
 import {
+  listarTagsMaterias,
   listarQuestoesComunidade,
   votarQuestao,
   despublicarQuestaoComunidade,
   criarAvaliacaoComQuestoesBanco,
 } from '@/app/actions/questoes';
-import { TurmaItem } from '@/app/actions/turmas';
+import { listarTurmasProfessor, TurmaItem } from '@/app/actions/turmas';
 
 const BOLINHA =
   'flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-[#0A2E4A] transition motion-safe:duration-200 group-hover:scale-110 group-active:scale-95';
@@ -77,15 +79,16 @@ export default function BancoQuestoesView({
 }: BancoQuestoesViewProps) {
   const router = useRouter();
   const [questoes, setQuestoes] = useState<QuestaoComunidade[]>(questoesIniciais);
-  const tags = tagsIniciais;
+  const [tags, setTags] = useState<string[]>(tagsIniciais);
   const [tagSelecionada, setTagSelecionada] = useState<string>(filtrosIniciais.tag);
   const [apenasMinhas, setApenasMinhas] = useState<boolean>(filtrosIniciais.apenasMinhas);
   const [termoBusca, setTermoBusca] = useState<string>(filtrosIniciais.busca);
   const [buscaAplicada, setBuscaAplicada] = useState(filtrosIniciais.busca);
   const [atualizacaoBusca, setAtualizacaoBusca] = useState(0);
   const [ordenacao, setOrdenacao] = useState<'populares' | 'recentes'>(filtrosIniciais.ordenacao);
-  const [carregando, setCarregando] = useState<boolean>(false);
+  const [carregando, setCarregando] = useState<boolean>(!erroInicial);
   const [erro, setErro] = useState<string>(erroInicial ?? '');
+  const [erroDadosAuxiliares, setErroDadosAuxiliares] = useState('');
   const [falhaCarregarQuestoes, setFalhaCarregarQuestoes] = useState(Boolean(erroInicial));
   const [filtrosFixados, setFiltrosFixados] = useState(false);
   const [alturaFiltros, setAlturaFiltros] = useState(0);
@@ -93,7 +96,7 @@ export default function BancoQuestoesView({
 
   // Seleção de questões para gerar nova avaliação
   const [questoesSelecionadas, setQuestoesSelecionadas] = useState<number[]>([]);
-  const [turmas] = useState<TurmaItem[]>(turmasIniciais);
+  const [turmas, setTurmas] = useState<TurmaItem[]>(turmasIniciais);
   const [turmaDestino, setTurmaDestino] = useState<string>(turmasIniciais[0]?.id ?? '');
   const [criandoAvaliacao, setCriandoAvaliacao] = useState<boolean>(false);
   const [modalCriacaoAberto, setModalCriacaoAberto] = useState<boolean>(false);
@@ -110,14 +113,20 @@ export default function BancoQuestoesView({
   const filtrosFixadosRef = useRef(false);
   const ultimoScrollRef = useRef(0);
   const rolagemParaTopoRef = useRef(false);
-  const filtrosAnteriores = useRef({
-    busca: buscaAplicada,
-    tag: tagSelecionada,
-    apenasMinhas,
-    ordenacao,
-    atualizacaoBusca,
-    isProfessor,
-  });
+  const filtrosAnteriores = useRef<{
+    busca: string;
+    tag: string;
+    apenasMinhas: boolean;
+    ordenacao: 'populares' | 'recentes';
+    atualizacaoBusca: number;
+    isProfessor: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!mensagemSucesso) return;
+    const timeout = window.setTimeout(() => setMensagemSucesso(''), 4000);
+    return () => window.clearTimeout(timeout);
+  }, [mensagemSucesso]);
 
   useEffect(() => {
     ultimoScrollRef.current = window.scrollY;
@@ -212,6 +221,41 @@ export default function BancoQuestoesView({
   }, [apenasMinhas, buscaAplicada, ordenacao, tagSelecionada]);
 
   useEffect(() => {
+    let cancelada = false;
+
+    async function carregarDadosAuxiliares() {
+      try {
+        const [tagsDisponiveis, resultadoTurmas] = await Promise.all([
+          listarTagsMaterias(),
+          listarTurmasProfessor(),
+        ]);
+
+        if (cancelada) return;
+        setTags(tagsDisponiveis);
+
+        if (!resultadoTurmas.turmas) {
+          setErroDadosAuxiliares(resultadoTurmas.erro ?? 'Não foi possível carregar as turmas.');
+          return;
+        }
+
+        setTurmas(resultadoTurmas.turmas);
+        setTurmaDestino((atual) => atual || resultadoTurmas.turmas?.[0]?.id || '');
+      } catch (error) {
+        console.error('Erro ao carregar dados auxiliares do banco de questões:', error);
+        if (!cancelada) {
+          setErroDadosAuxiliares('Não foi possível carregar os dados do banco de questões.');
+        }
+      }
+    }
+
+    void carregarDadosAuxiliares();
+
+    return () => {
+      cancelada = true;
+    };
+  }, []);
+
+  useEffect(() => {
     const filtrosAtuais = {
       busca: buscaAplicada,
       tag: tagSelecionada,
@@ -222,6 +266,7 @@ export default function BancoQuestoesView({
     };
     const anteriores = filtrosAnteriores.current;
     if (
+      anteriores &&
       filtrosAtuais.busca === anteriores.busca &&
       filtrosAtuais.tag === anteriores.tag &&
       filtrosAtuais.apenasMinhas === anteriores.apenasMinhas &&
@@ -231,8 +276,6 @@ export default function BancoQuestoesView({
     ) {
       return;
     }
-    filtrosAnteriores.current = filtrosAtuais;
-
     let cancelada = false;
 
     async function carregarQuestoes() {
@@ -263,7 +306,10 @@ export default function BancoQuestoesView({
           setFalhaCarregarQuestoes(true);
         }
       } finally {
-        if (!cancelada) setCarregando(false);
+        if (!cancelada) {
+          filtrosAnteriores.current = filtrosAtuais;
+          setCarregando(false);
+        }
       }
     }
 
@@ -422,14 +468,13 @@ export default function BancoQuestoesView({
 
   async function handleLogout() {
     await logoutUsuario();
-    router.refresh();
-    window.location.href = '/login';
+    router.replace('/login');
   }
 
   return (
     <div
       className={[
-        'relative min-h-screen overflow-x-hidden bg-[#F6FBFF]',
+        'relative min-h-screen overflow-x-clip bg-[#F6FBFF]',
         "font-sans text-[#0A2E4A]",
         'px-5 pb-32 pt-6 md:pl-32 md:pr-10 md:pb-16',
       ].join(' ')}
@@ -526,6 +571,15 @@ export default function BancoQuestoesView({
           </span>
           <span className={ROTULO}>Banco de Questões</span>
         </button>
+
+        {isProfessor && (
+          <Link href="/lixeira" aria-label="Lixeira" className={FOCO}>
+            <span className={`${BOLINHA} bg-[#FFE3E3] text-red-700 group-hover:bg-[#FFD3DB]`}>
+              <Trash2 className="h-6 w-6" strokeWidth={2.4} />
+            </span>
+            <span className={ROTULO}>Lixeira</span>
+          </Link>
+        )}
       </nav>
 
       {/* CONTEÚDO PRINCIPAL */}
@@ -573,10 +627,10 @@ export default function BancoQuestoesView({
           </div>
         )}
 
-        {erro && (
+        {(erro || erroDadosAuxiliares) && (
           <div role="alert" className="flex flex-wrap items-center gap-2.5 rounded-[20px] border-2 border-[#0A2E4A] bg-[#FFE3E3] px-4 py-3 text-sm font-extrabold text-[#8A1F1F] shadow-[0_3px_0_0_#0A2E4A]">
             <AlertCircle className="h-5 w-5 shrink-0" />
-            <span className="flex-1">{erro}</span>
+            <span className="flex-1">{erro || erroDadosAuxiliares}</span>
             {falhaCarregarQuestoes && (
               <button
                 type="button"

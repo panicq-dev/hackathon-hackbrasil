@@ -199,7 +199,7 @@ export async function registrarUsuario(d: Dados): Promise<Resultado> {
       `
         SELECT id
         FROM turmas
-        WHERE id = $1
+        WHERE id = $1 AND arquivada_em IS NULL
         LIMIT 1
       `,
       [turmaId]

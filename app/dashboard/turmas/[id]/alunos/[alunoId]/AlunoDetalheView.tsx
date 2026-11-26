@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -51,22 +52,104 @@ function CartaoIndicador({
   valor,
   detalhe,
   cor = "bg-[#EBF5FF]",
+  icone,
+  valorClassName = "text-3xl",
 }: {
   rotulo: string;
   valor: string;
   detalhe: string;
   cor?: string;
+  icone?: ReactNode;
+  valorClassName?: string;
 }) {
   return (
     <article className="rounded-[22px] border-[3px] border-[#0A2E4A] bg-white p-4 shadow-[0_4px_0_0_#0A2E4A]">
       <span className={`mb-3 grid h-10 w-10 place-items-center rounded-[14px] border-2 border-[#0A2E4A] ${cor}`}>
-        <CheckCircle2 className="h-5 w-5" />
+        {icone ?? <CheckCircle2 className="h-5 w-5" />}
       </span>
       <p className="text-[11px] font-extrabold tracking-wide text-[#4A6B85]">{rotulo}</p>
-      <p className="mt-1 font-sans text-3xl font-extrabold">{valor}</p>
+      <p className={`mt-1 font-sans font-extrabold ${valorClassName}`}>{valor}</p>
       <p className="mt-1 text-xs font-semibold text-[#4A6B85]">{detalhe}</p>
     </article>
   );
+}
+
+function obterLeituraProfessor(estatisticas: EstatisticasAluno) {
+  const maiorDificuldade = estatisticas.causasRaiz[0];
+
+  if (estatisticas.percentual === null) {
+    return {
+      status: "Sem dados",
+      titulo: "Ainda não há respostas suficientes",
+      descricao: estatisticas.totalAvaliacoes === 0
+        ? "Não houve avaliações neste período, então ainda não é possível avaliar a aprendizagem."
+        : estatisticas.totalRespondidas === 0
+          ? `Nenhuma avaliação foi respondida; ${estatisticas.pendencias} pendente(s).`
+          : "As respostas registradas ainda não permitem calcular o aproveitamento.",
+      variante: "neutra" as const,
+      cor: "bg-[#BFE3F7]",
+      icone: <ClipboardList className="h-5 w-5" />,
+    };
+  }
+
+  if (estatisticas.faixa === "apoio") {
+    return {
+      status: "Precisa de apoio",
+      titulo: "Atenção prioritária",
+      descricao: maiorDificuldade
+        ? `Aproveitamento de ${estatisticas.percentual}%. Retome principalmente ${maiorDificuldade.causaRaiz} (${maiorDificuldade.totalErros} erros).`
+        : `Aproveitamento de ${estatisticas.percentual}%. Revise as respostas incorretas para planejar uma retomada direcionada.`,
+      variante: "alerta" as const,
+      cor: "bg-[#FFE3E3]",
+      icone: <AlertTriangle className="h-5 w-5" />,
+    };
+  }
+
+  if (estatisticas.tendencia === "queda" && estatisticas.variacaoRecente !== null) {
+    return {
+      status: "Queda recente",
+      titulo: "Observe a evolução recente",
+      descricao: `O aproveitamento caiu ${Math.abs(estatisticas.variacaoRecente)} pontos na última avaliação respondida. Confira as questões recentes antes de definir a retomada.`,
+      variante: "alerta" as const,
+      cor: "bg-[#FFE3E3]",
+      icone: <TrendingDown className="h-5 w-5" />,
+    };
+  }
+
+  if (estatisticas.pendencias > 0) {
+    return {
+      status: "Entregas pendentes",
+      titulo: `${estatisticas.pendencias} avaliação(ões) pendente(s)`,
+      descricao: "O resultado ainda está parcial. Acompanhe as entregas antes de concluir a avaliação do período.",
+      variante: "atencao" as const,
+      cor: "bg-[#FFEFC2]",
+      icone: <AlertTriangle className="h-5 w-5" />,
+    };
+  }
+
+  if (estatisticas.faixa === "desenvolvimento") {
+    return {
+      status: "Acompanhar",
+      titulo: "Acompanhe de perto",
+      descricao: maiorDificuldade
+        ? `Aproveitamento de ${estatisticas.percentual}%. Reforce ${maiorDificuldade.causaRaiz}, a dificuldade mais recorrente.`
+        : `Aproveitamento de ${estatisticas.percentual}%. Continue acompanhando as habilidades que precisam de reforço.`,
+      variante: "atencao" as const,
+      cor: "bg-[#FFEFC2]",
+      icone: <Target className="h-5 w-5" />,
+    };
+  }
+
+  return {
+    status: "Consolidado",
+    titulo: "Aprendizagem consistente neste período",
+    descricao: maiorDificuldade
+      ? `Mantenha os desafios e observe ${maiorDificuldade.causaRaiz}, único ponto com erros recorrentes.`
+      : "Mantenha os desafios e continue acompanhando a evolução do aluno.",
+    variante: "positivo" as const,
+    cor: "bg-[#D1F2D9]",
+    icone: <CheckCircle2 className="h-5 w-5" />,
+  };
 }
 
 function TituloSecao({ titulo, descricao }: { titulo: string; descricao: string }) {
@@ -159,6 +242,20 @@ export default function AlunoDetalheView({
       : estatisticas?.tendencia === "estavel"
         ? "Estável"
         : "Sem histórico";
+  const leituraProfessor = estatisticas ? obterLeituraProfessor(estatisticas) : null;
+  const estilosLeitura = {
+    alerta: "border-red-700 bg-[#FFF1F1]",
+    atencao: "border-amber-700 bg-[#FFF8E6]",
+    positivo: "border-green-700 bg-[#F0FFF4]",
+    neutra: "border-[#14507F] bg-[#EBF5FF]",
+  };
+  const corTaxaAcerto = estatisticas?.faixa === "apoio"
+    ? "bg-[#FFE3E3]"
+    : estatisticas?.faixa === "desenvolvimento"
+      ? "bg-[#FFEFC2]"
+      : estatisticas?.faixa === "consolidado"
+        ? "bg-[#D1F2D9]"
+        : "bg-[#BFE3F7]";
 
   return (
     <DashboardChrome usuario={usuario}>
@@ -215,17 +312,40 @@ export default function AlunoDetalheView({
         )}
 
         <section>
-          <TituloSecao titulo="Indicadores gerais" descricao="Taxa de acerto, ritmo de entrega e comparação com a média da turma." />
+          <TituloSecao titulo="Resumo do período" descricao="Indicadores rápidos para decidir o que precisa de atenção." />
           {carregando ? (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {Array.from({ length: 4 }, (_, indice) => <div key={indice} className="h-36 animate-pulse rounded-[22px] bg-white" />)}
             </div>
           ) : estatisticas ? (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <CartaoIndicador rotulo="TAXA DE ACERTO" valor={formatarPercentual(estatisticas.percentual)} detalhe={`${estatisticas.totalAcertos} acertos em ${estatisticas.totalCampos} campos`} cor="bg-[#D1F2D9]" />
+              <CartaoIndicador
+                rotulo="TAXA DE ACERTO"
+                valor={formatarPercentual(estatisticas.percentual)}
+                detalhe={`${estatisticas.totalAcertos} acertos em ${estatisticas.totalCampos} campos`}
+                cor={corTaxaAcerto}
+                icone={estatisticas.faixa === "apoio"
+                  ? <AlertTriangle className="h-5 w-5" />
+                  : <CheckCircle2 className="h-5 w-5" />}
+              />
               <CartaoIndicador rotulo="MÉDIA DA TURMA" valor={formatarPercentual(estatisticas.mediaTurma)} detalhe={estatisticas.diferencaDaTurma === null ? "Sem comparação neste período" : `${estatisticas.diferencaDaTurma > 0 ? "+" : ""}${estatisticas.diferencaDaTurma} pontos em relação à turma`} cor="bg-[#BFE3F7]" />
-              <CartaoIndicador rotulo="ENTREGAS" valor={`${estatisticas.totalRespondidas}/${estatisticas.totalAvaliacoes}`} detalhe={`${formatarPercentual(estatisticas.taxaEntrega)} de taxa de entrega · ${estatisticas.pendencias} pendentes`} cor="bg-[#FFEFC2]" />
-              <CartaoIndicador rotulo="POSIÇÃO NA TURMA" valor={estatisticas.posicaoNaTurma === null ? "—" : `${estatisticas.posicaoNaTurma}º`} detalhe={estatisticas.totalAlunosComDesempenho ? `Entre ${estatisticas.totalAlunosComDesempenho} alunos com respostas` : "Ainda sem respostas avaliadas"} cor="bg-[#FFD3DB]" />
+              <CartaoIndicador
+                rotulo="ENTREGAS"
+                valor={`${estatisticas.totalRespondidas}/${estatisticas.totalAvaliacoes}`}
+                detalhe={`${formatarPercentual(estatisticas.taxaEntrega)} de taxa de entrega · ${estatisticas.pendencias} pendentes`}
+                cor={estatisticas.pendencias > 0 ? "bg-[#FFEFC2]" : "bg-[#D1F2D9]"}
+                icone={estatisticas.pendencias > 0
+                  ? <AlertTriangle className="h-5 w-5" />
+                  : <CheckCircle2 className="h-5 w-5" />}
+              />
+              <CartaoIndicador
+                rotulo="SINAL DE ACOMPANHAMENTO"
+                valor={leituraProfessor?.status ?? "—"}
+                detalhe="Síntese do desempenho e das entregas"
+                cor={leituraProfessor?.cor}
+                icone={leituraProfessor?.icone}
+                valorClassName="text-2xl"
+              />
             </div>
           ) : (
             <div className="rounded-[24px] border-2 border-dashed border-[#0A2E4A]/40 bg-white p-8 text-center text-sm font-semibold text-[#4A6B85]">
@@ -233,6 +353,37 @@ export default function AlunoDetalheView({
             </div>
           )}
         </section>
+
+        {leituraProfessor && !carregando && (
+          <section
+            aria-labelledby="resumo-professor"
+            className={`flex flex-wrap items-start justify-between gap-4 rounded-[24px] border-[3px] p-5 shadow-[0_4px_0_0_#0A2E4A] ${estilosLeitura[leituraProfessor.variante]}`}
+          >
+            <div className="flex min-w-0 items-start gap-3">
+              <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-[15px] border-2 border-[#0A2E4A] ${leituraProfessor.cor}`}>
+                {leituraProfessor.icone}
+              </span>
+              <div>
+                <p className="text-[11px] font-extrabold uppercase tracking-wide text-[#4A6B85]">
+                  Leitura rápida para o professor
+                </p>
+                <h2 id="resumo-professor" className="mt-1 font-sans text-lg font-extrabold text-[#0A2E4A]">
+                  {leituraProfessor.titulo}
+                </h2>
+                <p className="mt-1 max-w-3xl text-sm font-semibold text-[#334E68]">
+                  {leituraProfessor.descricao}
+                </p>
+              </div>
+            </div>
+            <Link
+              href="#maiores-dificuldades"
+              className="inline-flex shrink-0 items-center gap-2 rounded-full border-2 border-[#0A2E4A] bg-white px-3 py-2 text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A] hover:bg-[#F6FBFF]"
+            >
+              <Target className="h-4 w-4" />
+              Ver dificuldades
+            </Link>
+          </section>
+        )}
 
         {estatisticas && !carregando && (
           <>
@@ -251,7 +402,7 @@ export default function AlunoDetalheView({
                   Ainda não há avaliações respondidas para visualizar a evolução.
                 </p>
               ) : (
-                <div className="grid grid-flow-col auto-cols-[minmax(90px,1fr)] items-end gap-3 overflow-x-auto pb-2">
+                <div className="grid grid-cols-2 items-end gap-3 pb-2 sm:grid-cols-4 lg:grid-cols-6">
                   {estatisticas.evolucao.map((ponto) => (
                     <div key={ponto.avaliacaoId} className="text-center">
                       <p className="mb-2 text-xs font-extrabold">{ponto.percentual}% <span className="font-bold text-[#4A6B85]">/ {formatarPercentual(ponto.mediaTurma)}</span></p>
@@ -271,7 +422,7 @@ export default function AlunoDetalheView({
             </section>
 
             <div className="grid gap-5 lg:grid-cols-2">
-              <section className="rounded-[28px] border-[3px] border-[#0A2E4A] bg-white p-5 shadow-[0_5px_0_0_#0A2E4A]">
+              <section id="maiores-dificuldades" className="rounded-[28px] border-[3px] border-[#0A2E4A] bg-white p-5 shadow-[0_5px_0_0_#0A2E4A]">
                 <TituloSecao titulo="Maiores dificuldades" descricao="Causas de erro recorrentes que podem orientar uma retomada direcionada." />
                 {!estatisticas.causasRaiz.length ? (
                   <p className="rounded-2xl bg-[#F6FBFF] p-5 text-sm font-semibold text-[#4A6B85]">Nenhuma dificuldade foi identificada nas respostas deste período.</p>

@@ -88,9 +88,12 @@ export async function loginUsuario(d: DadosLogin): Promise<ResultadoLogin> {
         turma_id: string;
         senha_hash: string;
       }>(
-        `SELECT id, nome, email, matricula, turma_id, senha_hash
-           FROM alunos
-          WHERE lower(email) = $1
+        `SELECT a.id, a.nome, a.email, a.matricula, a.turma_id, a.senha_hash
+           FROM alunos a
+           JOIN turmas t ON t.id = a.turma_id
+          WHERE lower(a.email) = $1
+            AND a.ativo = true
+            AND t.arquivada_em IS NULL
           LIMIT 1`,
         [email]
       );

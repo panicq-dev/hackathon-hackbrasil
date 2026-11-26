@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import {
   X,
   Users,
@@ -32,6 +32,14 @@ export default function ModalRespostasProfessor({ avaliacaoId, onFechar }: Modal
   const [relatorio, setRelatorio] = useState<RelatorioConsolidado | null>(null);
   const [copiado, setCopiado] = useState(false);
   const [alunoExpandido, setAlunoExpandido] = useState<number | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const modal = modalRef.current;
+    if (modal) {
+      modal.style.marginTop = `${window.scrollY - modal.offsetTop}px`;
+    }
+  }, []);
 
   useEffect(() => {
     async function carregar() {
@@ -76,7 +84,10 @@ export default function ModalRespostasProfessor({ avaliacaoId, onFechar }: Modal
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-[#0A2E4A]/60 p-4 backdrop-blur-sm">
+    <div
+      ref={modalRef}
+      className="relative z-50 min-h-screen bg-[#0A2E4A]/60 p-4 backdrop-blur-sm"
+    >
       <div className="relative mx-auto my-4 flex w-full max-w-4xl flex-col rounded-[36px] border-[3px] border-[#0A2E4A] bg-white shadow-[0_12px_0_0_#0A2E4A]">
         {/* Cabeçalho */}
         <div className="flex items-center justify-between border-b-2 border-[#0A2E4A]/15 px-6 py-5">
@@ -329,7 +340,7 @@ export default function ModalRespostasProfessor({ avaliacaoId, onFechar }: Modal
                 </div>
               </div>
 
-              <pre className="max-h-96 overflow-x-auto rounded-2xl border-2 border-[#0A2E4A] bg-[#0A2E4A] p-4 text-xs font-mono text-[#EBF5FF] shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)]">
+              <pre className="whitespace-pre-wrap break-all rounded-2xl border-2 border-[#0A2E4A] bg-[#0A2E4A] p-4 text-xs font-mono text-[#EBF5FF] shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)]">
                 {JSON.stringify(relatorio, null, 2)}
               </pre>
             </div>

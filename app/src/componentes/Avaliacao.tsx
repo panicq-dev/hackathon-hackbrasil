@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Send, CheckCircle2, AlertCircle, Info, Sparkles, Share2, Check, Globe } from 'lucide-react';
 import { Avaliacoes, EstruturaQuestao } from '@/app/src/types/index';
 import { salvarRespostaAluno } from '@/app/actions/avaliacoes';
@@ -30,6 +30,12 @@ export default function Avaliacao({
     avaliacao?.respondidaPorMim ? 'Você já enviou suas respostas para esta avaliação.' : ''
   );
   const [erro, setErro] = useState('');
+
+  useEffect(() => {
+    if (!mensagemSucesso || mensagemSucesso === 'Você já enviou suas respostas para esta avaliação.') return;
+    const timeout = window.setTimeout(() => setMensagemSucesso(''), 4000);
+    return () => window.clearTimeout(timeout);
+  }, [mensagemSucesso]);
   
   // Rastreia questões publicadas na comunidade localmente
   const [publicadas, setPublicadas] = useState<Record<number, boolean>>({});

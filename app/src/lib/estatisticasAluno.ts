@@ -3,6 +3,7 @@ import {
   verificarAcerto,
   AlunoParaDesempenho,
   AvaliacaoParaDesempenho,
+  FaixaDesempenho,
   RespostaParaDesempenho,
 } from "./desempenho";
 import { CampoValidacao, EstruturaQuestao } from "@/app/src/types";
@@ -51,8 +52,7 @@ export type EstatisticasAluno = {
   percentual: number | null;
   mediaTurma: number | null;
   diferencaDaTurma: number | null;
-  posicaoNaTurma: number | null;
-  totalAlunosComDesempenho: number;
+  faixa: FaixaDesempenho;
   tendencia: "melhora" | "queda" | "estavel" | "sem-dados";
   variacaoRecente: number | null;
   evolucao: PontoEvolucaoAluno[];
@@ -202,12 +202,6 @@ export function calcularEstatisticasAluno(
         ? "queda"
         : "estavel";
 
-  const alunosComResultado = desempenho.alunos
-    .filter((item) => item.percentual !== null)
-    .sort((a, b) => (b.percentual ?? -1) - (a.percentual ?? -1) || a.nome.localeCompare(b.nome, "pt-BR"));
-  const posicaoNaTurma = alunoCalculado.percentual === null
-    ? null
-    : 1 + alunosComResultado.filter((item) => (item.percentual ?? -1) > alunoCalculado.percentual!).length;
   const totalRespondidas = alunoCalculado.totalRespondidas;
 
   return {
@@ -222,8 +216,7 @@ export function calcularEstatisticasAluno(
     diferencaDaTurma: alunoCalculado.percentual !== null && desempenho.mediaTurma !== null
       ? alunoCalculado.percentual - desempenho.mediaTurma
       : null,
-    posicaoNaTurma,
-    totalAlunosComDesempenho: alunosComResultado.length,
+    faixa: alunoCalculado.faixa,
     tendencia,
     variacaoRecente,
     evolucao,

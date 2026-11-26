@@ -71,8 +71,7 @@ export default function Login({ onLoginSucesso }: LoginProps) {
         if (onLoginSucesso) {
           onLoginSucesso();
         } else {
-          router.refresh();
-          window.location.href = '/';
+          router.replace('/');
         }
       }
     } catch {

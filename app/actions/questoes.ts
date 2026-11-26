@@ -398,6 +398,18 @@ export async function criarAvaliacaoComQuestoesBanco(
     const conteudo = { questoes };
     const professorId = Number(sessao.id);
     const turmaFinal = turmaId && turmaId.trim() ? turmaId.trim() : null;
+    if (turmaFinal) {
+      const turmaAtiva = await pool.query(
+        `SELECT id
+           FROM turmas
+          WHERE id = $1 AND professor_id = $2 AND arquivada_em IS NULL
+          LIMIT 1`,
+        [turmaFinal, professorId]
+      );
+      if (turmaAtiva.rowCount === 0) {
+        return { sucesso: false, erro: 'Turma não encontrada ou inativa.' };
+      }
+    }
 
     const resInsert = await pool.query(
       `INSERT INTO avaliacoes (conteudo, professor_id, turma_id)

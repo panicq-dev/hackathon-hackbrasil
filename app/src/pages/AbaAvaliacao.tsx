@@ -15,6 +15,7 @@ import {
   Users,
   ShieldCheck,
   GraduationCap,
+  Trash2,
 } from 'lucide-react';
 import { Avaliacoes } from '@/app/src/types/index';
 import GeradorAvaliativo from '@/app/src/componentes/GeradorAvaliativo';
@@ -29,6 +30,7 @@ import {
   obterUsuarioAtual,
 } from '@/app/actions/login';
 import { UsuarioSessao } from '@/app/src/lib/session';
+import { enviarParaLixeira } from '@/app/actions/lixeira';
 
 const ROTA_DASHBOARD = '/dashboard';
 const ROTA_BANCO = '/banco-de-questoes';
@@ -67,6 +69,7 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
   const [geradorAberto, setGeradorAberto] = useState(false);
   const [carregando, setCarregando] = useState(true);
   const [erroCarregamento, setErroCarregamento] = useState('');
+  const [avaliacaoEmOperacao, setAvaliacaoEmOperacao] = useState<string | null>(null);
 
   const carregarDados = useCallback(async () => {
     setCarregando(true);
@@ -126,12 +129,33 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
     setGeradorAberto(false);
   }
 
+  async function arquivarAvaliacao(item: AvaliacaoResumida) {
+    if (!isProfessor) return;
+    if (!window.confirm(`Mover a avaliação #${item.id.slice(0, 8)} para a lixeira? As respostas serão mantidas até a exclusão permanente.`)) return;
+    setAvaliacaoEmOperacao(item.id);
+    setErroCarregamento('');
+    try {
+      const resultado = await enviarParaLixeira('avaliacao', item.id);
+      if (resultado.erro) {
+        setErroCarregamento(resultado.erro);
+      } else {
+        setAvaliacoes((atuais) => atuais.filter((avaliacao) => avaliacao.id !== item.id));
+        setAvaliacaoSelecionada((atual) => atual?.id === item.id ? null : atual);
+        setAvaliacaoRespostasAberta((atual) => atual === item.id ? null : atual);
+      }
+    } catch (erro) {
+      setErroCarregamento(erro instanceof Error ? erro.message : 'Não foi possível mover a avaliação para a lixeira.');
+    } finally {
+      setAvaliacaoEmOperacao(null);
+    }
+  }
+
   const isProfessor = usuario?.perfil === 'professor';
 
   return (
     <div
       className={[
-        'relative min-h-screen overflow-x-hidden bg-[#F6FBFF]',
+        'relative min-h-screen overflow-x-clip bg-[#F6FBFF]',
         "font-sans text-[#0A2E4A]",
         'px-5 pb-32 pt-6 md:pl-32 md:pr-10 md:pb-16',
       ].join(' ')}
@@ -230,6 +254,15 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
               <Library className="h-6 w-6" strokeWidth={2.4} />
             </span>
             <span className={ROTULO}>Banco de Questões</span>
+          </Link>
+        )}
+
+        {isProfessor && (
+          <Link href="/lixeira" aria-label="Lixeira" className={FOCO}>
+            <span className={`${BOLINHA} bg-[#FFE3E3] text-red-700 group-hover:bg-[#FFD3DB]`}>
+              <Trash2 className="h-6 w-6" strokeWidth={2.4} />
+            </span>
+            <span className={ROTULO}>Lixeira</span>
           </Link>
         )}
       </nav>
@@ -365,14 +398,28 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
 
                   {/* Professor: Visualizar quem respondeu e dados de análise */}
                   {isProfessor && (
-                    <button
-                      type="button"
-                      onClick={() => setAvaliacaoRespostasAberta(item.id)}
-                      className="flex cursor-pointer items-center justify-center gap-1 rounded-xl border-2 border-[#0A2E4A] bg-[#FFC53D] px-3 py-2 font-sans text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5"
-                    >
-                      <Users className="h-3.5 w-3.5" />
-                      <span>Quem respondeu ({item.totalRespostas ?? 0})</span>
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setAvaliacaoRespostasAberta(item.id)}
+                        className="flex cursor-pointer items-center justify-center gap-1 rounded-xl border-2 border-[#0A2E4A] bg-[#FFC53D] px-3 py-2 font-sans text-xs font-extrabold text-[#0A2E4A] shadow-[0_2px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5"
+                      >
+                        <Users className="h-3.5 w-3.5" />
+                        <span>Quem respondeu ({item.totalRespostas ?? 0})</span>
+                      </button>
+                      {(item.professorId === Number(usuario?.id) || Boolean(item.turmaId)) && (
+                        <button
+                          type="button"
+                          aria-label={`Mover avaliação ${item.id.slice(0, 8)} para a lixeira`}
+                          title="Mover avaliação para a lixeira"
+                          disabled={avaliacaoEmOperacao === item.id}
+                          onClick={() => void arquivarAvaliacao(item)}
+                          className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-red-700 bg-red-100 text-red-700 shadow-[0_2px_0_0_#991B1B] transition hover:bg-red-200 disabled:opacity-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

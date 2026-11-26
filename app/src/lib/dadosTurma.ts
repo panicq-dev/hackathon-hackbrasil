@@ -38,7 +38,7 @@ export async function carregarDadosTurma(
   const turmaRes = await pool.query<{ id: string; nome: string }>(
     `SELECT id, nome
        FROM turmas
-      WHERE id = $1 AND professor_id = $2
+       WHERE id = $1 AND professor_id = $2 AND arquivada_em IS NULL
       LIMIT 1`,
     [turmaId, professorId]
   );
@@ -49,7 +49,7 @@ export async function carregarDadosTurma(
     pool.query<{ id: number; nome: string; matricula: string }>(
       `SELECT id, nome, matricula
          FROM alunos
-        WHERE turma_id = $1
+        WHERE turma_id = $1 AND ativo = true
         ORDER BY nome ASC`,
       [turmaId]
     ),
@@ -60,7 +60,7 @@ export async function carregarDadosTurma(
     }>(
       `SELECT id, criado_em, conteudo
          FROM avaliacoes
-        WHERE turma_id = $1
+        WHERE turma_id = $1 AND ativo = true
         ORDER BY criado_em DESC`,
       [turmaId]
     ),

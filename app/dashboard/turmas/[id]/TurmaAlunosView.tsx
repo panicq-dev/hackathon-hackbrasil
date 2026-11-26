@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import {
   ArrowLeft,
   Users,
@@ -10,10 +11,12 @@ import {
   LayoutDashboard,
   ClipboardCheck,
   Library,
+  Trash2,
 } from 'lucide-react';
 import { UsuarioSessao } from '@/app/src/lib/session';
 import { logoutUsuario } from '@/app/actions/login';
 import { AlunoTurma } from '@/app/actions/turmas';
+import { enviarParaLixeira } from '@/app/actions/lixeira';
 
 const BOLINHA =
   'flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-[#0A2E4A] transition motion-safe:duration-200 group-hover:scale-110 group-active:scale-95';
@@ -38,17 +41,38 @@ type Props = {
 
 export default function TurmaAlunosView({ usuario, turmaId, turmaNome, alunos }: Props) {
   const router = useRouter();
+  const [alunosVisiveis, setAlunosVisiveis] = useState(alunos);
+  const [alunoEmOperacao, setAlunoEmOperacao] = useState<number | null>(null);
+  const [erroLixeira, setErroLixeira] = useState('');
 
   async function handleLogout() {
     await logoutUsuario();
-    router.refresh();
-    window.location.href = '/login';
+    router.replace('/login');
+  }
+
+  async function arquivarAluno(aluno: AlunoTurma) {
+    if (!window.confirm(`Mover o aluno "${aluno.nome}" para a lixeira?`)) return;
+    setAlunoEmOperacao(aluno.id);
+    setErroLixeira('');
+    try {
+      const resultado = await enviarParaLixeira('aluno', String(aluno.id));
+      if (resultado.erro) {
+        setErroLixeira(resultado.erro);
+      } else {
+        setAlunosVisiveis((atuais) => atuais.filter((item) => item.id !== aluno.id));
+        router.refresh();
+      }
+    } catch (erro) {
+      setErroLixeira(erro instanceof Error ? erro.message : 'Não foi possível mover o aluno para a lixeira.');
+    } finally {
+      setAlunoEmOperacao(null);
+    }
   }
 
   return (
     <div
       className={[
-        'relative min-h-screen overflow-x-hidden bg-[#F6FBFF]',
+        'relative min-h-screen overflow-x-clip bg-[#F6FBFF]',
         "font-sans text-[#0A2E4A]",
         'px-5 pb-32 pt-6 md:pl-32 md:pr-10 md:pb-16',
       ].join(' ')}
@@ -122,6 +146,13 @@ export default function TurmaAlunosView({ usuario, turmaId, turmaNome, alunos }:
           </span>
           <span className={ROTULO}>Banco de Questões</span>
         </Link>
+
+        <Link href="/lixeira" aria-label="Lixeira" className={FOCO}>
+          <span className={`${BOLINHA} bg-[#FFE3E3] text-red-700 group-hover:bg-[#FFD3DB]`}>
+            <Trash2 className="h-6 w-6" />
+          </span>
+          <span className={ROTULO}>Lixeira</span>
+        </Link>
       </nav>
 
       <main className="relative z-10 mx-auto max-w-5xl space-y-6">
@@ -153,7 +184,7 @@ export default function TurmaAlunosView({ usuario, turmaId, turmaNome, alunos }:
 
             <div className="rounded-[20px] border-2 border-[#0A2E4A] bg-[#EBF5FF] px-4 py-2.5 text-center shadow-[0_3px_0_0_#0A2E4A]">
               <span className="block font-sans text-2xl font-extrabold text-[#0A2E4A]">
-                {alunos.length}
+                {alunosVisiveis.length}
               </span>
               <span className="font-sans text-xs font-bold text-[#14507F]">
                 Alunos Matriculados
@@ -165,8 +196,13 @@ export default function TurmaAlunosView({ usuario, turmaId, turmaNome, alunos }:
             <h2 className="font-sans text-lg font-extrabold text-[#0A2E4A]">
               Lista de Alunos
             </h2>
+            {erroLixeira && (
+              <p role="alert" className="mt-3 rounded-xl border-2 border-red-700 bg-red-50 px-3 py-2 text-sm font-bold text-red-800">
+                {erroLixeira}
+              </p>
+            )}
 
-            {alunos.length === 0 ? (
+            {alunosVisiveis.length === 0 ? (
               <div className="mt-4 rounded-[24px] border-2 border-dashed border-[#0A2E4A]/30 bg-[#F4FAFF] p-8 text-center">
                 <p className="font-sans text-sm font-bold text-[#4A6B85]">
                   Nenhum aluno cadastrado nesta turma ainda.
@@ -177,7 +213,7 @@ export default function TurmaAlunosView({ usuario, turmaId, turmaNome, alunos }:
               </div>
             ) : (
               <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {alunos.map((a, idx) => (
+                {alunosVisiveis.map((a, idx) => (
                   <div
                     key={a.id}
                     className="flex items-center gap-3 rounded-[20px] border-2 border-[#0A2E4A] bg-[#F6FBFF] p-3.5 shadow-[0_3px_0_0_#0A2E4A]"
@@ -188,6 +224,16 @@ export default function TurmaAlunosView({ usuario, turmaId, turmaNome, alunos }:
                     <span className="font-sans text-sm font-bold text-[#0A2E4A]">
                       {a.nome}
                     </span>
+                    <button
+                      type="button"
+                      aria-label={`Mover ${a.nome} para a lixeira`}
+                      title="Mover aluno para a lixeira"
+                      disabled={alunoEmOperacao === a.id}
+                      onClick={() => void arquivarAluno(a)}
+                      className="ml-auto flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-red-700 bg-red-100 text-red-700 shadow-[0_2px_0_0_#991B1B] transition hover:bg-red-200 disabled:opacity-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
                 ))}
               </div>

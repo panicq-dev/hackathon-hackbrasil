@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Users,
   PlusCircle,
@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   GraduationCap,
   ArrowRight,
+  Trash2,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { UsuarioSessao } from '@/app/src/lib/session';
@@ -25,6 +26,7 @@ import {
   obterTurmaDoAluno,
   TurmaItem,
 } from '@/app/actions/turmas';
+import { enviarParaLixeira } from '@/app/actions/lixeira';
 
 const BOLINHA =
   'flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-[#0A2E4A] transition motion-safe:duration-200 group-hover:scale-110 group-active:scale-95';
@@ -48,7 +50,9 @@ export function DashboardChrome({
   children: ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const isProfessor = usuario.perfil === 'professor';
+  const estaNaLixeira = pathname === '/lixeira';
 
   async function handleLogout() {
     await logoutUsuario();
@@ -59,7 +63,7 @@ export function DashboardChrome({
   return (
     <div
       className={[
-        'relative min-h-screen overflow-x-hidden bg-[#F6FBFF]',
+        'relative min-h-screen overflow-x-clip bg-[#F6FBFF]',
         "font-sans text-[#0A2E4A]",
         'px-5 pb-32 pt-6 md:pl-32 md:pr-10 md:pb-16',
       ].join(' ')}
@@ -126,8 +130,19 @@ export function DashboardChrome({
           'md:bottom-auto md:left-6 md:top-1/2 md:-translate-y-1/2 md:translate-x-0 md:flex-col md:px-3 md:py-4',
         ].join(' ')}
       >
-        <Link href="/dashboard" aria-label="Dashboard" className={FOCO}>
-          <span className={`${BOLINHA} -translate-y-0.5 bg-[#FFC53D] shadow-[0_4px_0_0_#0A2E4A]`}>
+        <Link
+          href="/dashboard"
+          aria-label="Dashboard"
+          aria-current={!estaNaLixeira ? 'page' : undefined}
+          className={FOCO}
+        >
+          <span
+            className={`${BOLINHA} ${
+              estaNaLixeira
+                ? 'bg-white group-hover:bg-[#C6EFE9]'
+                : '-translate-y-0.5 bg-[#FFC53D] shadow-[0_4px_0_0_#0A2E4A]'
+            }`}
+          >
             <LayoutDashboard className="h-6 w-6" strokeWidth={2.4} />
           </span>
           <span className={ROTULO}>Dashboard</span>
@@ -148,6 +163,26 @@ export function DashboardChrome({
             <span className={ROTULO}>Banco de Questões</span>
           </Link>
         )}
+
+        {isProfessor && (
+          <Link
+            href="/lixeira"
+            aria-label="Lixeira"
+            aria-current={estaNaLixeira ? 'page' : undefined}
+            className={FOCO}
+          >
+            <span
+              className={`${BOLINHA} ${
+                estaNaLixeira
+                  ? '-translate-y-0.5 bg-red-600 text-white shadow-[0_4px_0_0_#0A2E4A]'
+                  : 'bg-[#FFE3E3] text-red-700 group-hover:bg-[#FFD3DB]'
+              }`}
+            >
+              <Trash2 className="h-6 w-6" strokeWidth={2.4} />
+            </span>
+            <span className={ROTULO}>Lixeira</span>
+          </Link>
+        )}
       </nav>
 
       {children}
@@ -159,6 +194,9 @@ export default function DashboardView({ usuario }: { usuario: UsuarioSessao }) {
   const [turmas, setTurmas] = useState<TurmaItem[]>([]);
   const [turmaAluno, setTurmaAluno] = useState<{ id: string; nome: string } | null>(null);
   const [carregando, setCarregando] = useState(true);
+  const [operacaoLixeiraId, setOperacaoLixeiraId] = useState<string | null>(null);
+  const [erroLixeira, setErroLixeira] = useState('');
+  const [mensagemLixeira, setMensagemLixeira] = useState('');
 
   // Formulário de criação
   const [nomeTurma, setNomeTurma] = useState('');
@@ -195,6 +233,18 @@ export default function DashboardView({ usuario }: { usuario: UsuarioSessao }) {
     };
   }, [isProfessor]);
 
+  useEffect(() => {
+    if (!mensagemSucesso) return;
+    const timeout = window.setTimeout(() => setMensagemSucesso(''), 4000);
+    return () => window.clearTimeout(timeout);
+  }, [mensagemSucesso]);
+
+  useEffect(() => {
+    if (!mensagemLixeira) return;
+    const timeout = window.setTimeout(() => setMensagemLixeira(''), 4000);
+    return () => window.clearTimeout(timeout);
+  }, [mensagemLixeira]);
+
   async function handleCriarTurma(e: React.FormEvent) {
     e.preventDefault();
     setErro('');
@@ -221,6 +271,26 @@ export default function DashboardView({ usuario }: { usuario: UsuarioSessao }) {
     navigator.clipboard.writeText(codigo);
     setCopiadoId(codigo);
     setTimeout(() => setCopiadoId(null), 2000);
+  }
+
+  async function arquivarTurma(turma: TurmaItem) {
+    if (!window.confirm(`Mover "${turma.nome}" para a lixeira? Os alunos e avaliações ativos também serão inativados.`)) return;
+    setOperacaoLixeiraId(turma.id);
+    setErroLixeira('');
+    setMensagemLixeira('');
+    try {
+      const resultado = await enviarParaLixeira('turma', turma.id);
+      if (resultado.erro) {
+        setErroLixeira(resultado.erro);
+      } else {
+        setTurmas((atuais) => atuais.filter((item) => item.id !== turma.id));
+        setMensagemLixeira(`Turma "${turma.nome}" foi movida para a lixeira.`);
+      }
+    } catch (erro) {
+      setErroLixeira(erro instanceof Error ? erro.message : 'Não foi possível mover a turma para a lixeira.');
+    } finally {
+      setOperacaoLixeiraId(null);
+    }
   }
 
   const totalAlunosGeral = turmas.reduce((acc, t) => acc + t.totalAlunos, 0);
@@ -251,6 +321,16 @@ export default function DashboardView({ usuario }: { usuario: UsuarioSessao }) {
 
         {isProfessor ? (
           <div className="space-y-8">
+            {erroLixeira && (
+              <p role="alert" className="rounded-xl border-2 border-red-700 bg-red-50 px-3 py-2 text-sm font-bold text-red-800">
+                {erroLixeira}
+              </p>
+            )}
+            {mensagemLixeira && (
+              <p role="status" className="rounded-xl border-2 border-green-700 bg-green-50 px-3 py-2 text-sm font-bold text-green-800">
+                {mensagemLixeira}
+              </p>
+            )}
             {/* Métricas simples */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="rounded-[24px] border-[3px] border-[#0A2E4A] bg-white p-5 shadow-[0_4px_0_0_#0A2E4A]">
@@ -343,9 +423,21 @@ export default function DashboardView({ usuario }: { usuario: UsuarioSessao }) {
                             </p>
                           </div>
 
-                          <span className="rounded-full border border-[#0A2E4A]/30 bg-[#EBF5FF] px-2.5 py-0.5 text-xs font-bold text-[#14507F]">
-                            {t.totalAlunos} aluno(s)
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="rounded-full border border-[#0A2E4A]/30 bg-[#EBF5FF] px-2.5 py-0.5 text-xs font-bold text-[#14507F]">
+                              {t.totalAlunos} aluno(s)
+                            </span>
+                            <button
+                              type="button"
+                              aria-label={`Mover turma ${t.nome} para a lixeira`}
+                              title="Mover turma para a lixeira"
+                              disabled={operacaoLixeiraId === t.id}
+                              onClick={() => void arquivarTurma(t)}
+                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-red-700 bg-red-100 text-red-700 shadow-[0_2px_0_0_#991B1B] transition hover:bg-red-200 disabled:opacity-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
                         </div>
 
                         {/* Código de Acesso */}
@@ -392,6 +484,7 @@ export default function DashboardView({ usuario }: { usuario: UsuarioSessao }) {
                 </div>
               )}
             </div>
+
           </div>
         ) : (
           /* Aluno */

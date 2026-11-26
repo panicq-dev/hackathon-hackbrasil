@@ -86,6 +86,22 @@ export async function gerarAvaliacao(
     if (sessao && sessao.perfil !== 'professor') {
       throw new Error("Apenas professores podem gerar avaliações.");
     }
+    const turmaInformada = turmaId?.trim();
+    if (turmaInformada) {
+      const professorId = sessao?.perfil === 'professor' ? Number(sessao.id) : null;
+      const turmaAtiva = professorId === null
+        ? { rowCount: 0 }
+        : await pool.query(
+            `SELECT id
+               FROM turmas
+              WHERE id = $1 AND professor_id = $2 AND arquivada_em IS NULL
+              LIMIT 1`,
+            [turmaInformada, professorId]
+          );
+      if (turmaAtiva.rowCount === 0) {
+        throw new Error("Turma não encontrada ou inativa.");
+      }
+    }
 
     const usarBanco = opcoes?.usarBancoComunidade ?? true;
     let questoesDoBanco: EstruturaQuestao[] = [];
@@ -204,7 +220,7 @@ export async function gerarAvaliacao(
     }
 
     const professorId = sessao?.perfil === 'professor' ? Number(sessao.id) : null;
-    const turmaIdFinal = turmaId && turmaId.trim() ? turmaId.trim() : null;
+    const turmaIdFinal = turmaInformada || null;
 
     const conteudoCompleto = { questoes: questoesFinais };
 
