@@ -553,7 +553,7 @@ export default function BancoQuestoesView({
           <span className={ROTULO}>Dashboard</span>
         </Link>
 
-        <Link href="/" aria-label="Avaliações" className={FOCO}>
+        <Link href="/avaliacoes" aria-label="Avaliações" className={FOCO}>
           <span className={`${BOLINHA} bg-white group-hover:bg-[#C6EFE9]`}>
             <ClipboardCheck className="h-6 w-6 text-[#0A2E4A]" strokeWidth={2.4} />
           </span>

@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { obterUsuarioAtual } from "@/app/actions/login";
-import AbaAvaliacao from "./src/pages/AbaAvaliacao";
+import DashboardView from "./dashboard/DashboardView";
 import Login from "./src/componentes/Login";
 
 async function ConteudoHome() {
@@ -12,7 +12,7 @@ async function ConteudoHome() {
     return <Login />;
   }
 
-  return <AbaAvaliacao usuarioInicial={usuario} />;
+  return <DashboardView usuario={usuario} />;
 }
 
 export default function Home() {
