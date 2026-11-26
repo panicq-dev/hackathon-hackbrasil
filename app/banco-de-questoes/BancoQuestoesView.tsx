@@ -91,17 +91,14 @@ export default function BancoQuestoesView({
   const [alturaFiltros, setAlturaFiltros] = useState(0);
   const [mostrarVoltarTopo, setMostrarVoltarTopo] = useState(false);
 
-  // Seleção de questões para gerar nova avaliação
   const [questoesSelecionadas, setQuestoesSelecionadas] = useState<number[]>([]);
   const [turmas, setTurmas] = useState<TurmaItem[]>(turmasIniciais);
   const [turmaDestino, setTurmaDestino] = useState<string>(turmasIniciais[0]?.id ?? '');
   const [criandoAvaliacao, setCriandoAvaliacao] = useState<boolean>(false);
   const [modalCriacaoAberto, setModalCriacaoAberto] = useState<boolean>(false);
 
-  // Expansão de detalhes das questões
   const [expandidas, setExpandidas] = useState<Record<number, boolean>>({});
 
-  // Mensagens
   const [mensagemSucesso, setMensagemSucesso] = useState<string>('');
   const isProfessor = usuario.perfil === 'professor';
   const filtrosAncoraRef = useRef<HTMLDivElement>(null);
@@ -342,7 +339,6 @@ export default function BancoQuestoesView({
       return;
     }
 
-    // Atualização otimista
     setQuestoes((prev) =>
       prev.map((q) => {
         if (q.id !== questaoId) return q;
@@ -352,12 +348,10 @@ export default function BancoQuestoesView({
         let novoVoto: 'like' | 'dislike' | null = tipo;
 
         if (q.meuVoto === tipo) {
-          // Removeu o voto
           novoVoto = null;
           if (tipo === 'like') novosLikes = Math.max(0, novosLikes - 1);
           if (tipo === 'dislike') novosDislikes = Math.max(0, novosDislikes - 1);
         } else {
-          // Inseriu ou trocou
           if (tipo === 'like') {
             novosLikes += 1;
             if (q.meuVoto === 'dislike') novosDislikes = Math.max(0, novosDislikes - 1);

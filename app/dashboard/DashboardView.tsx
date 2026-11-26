@@ -68,7 +68,7 @@ export function DashboardChrome({
         'px-5 pb-32 pt-6 md:pl-32 md:pr-10 md:pb-16',
       ].join(' ')}
     >
-      <div aria-hidden className="pointer-events-none absolute inset-0">
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -left-24 top-10 h-72 w-72 rounded-[60%_40%_55%_45%] bg-[#BFE3F7]/70 blur-2xl" />
         <div className="absolute right-[-60px] top-1/3 h-80 w-80 rounded-[45%_55%_40%_60%] bg-[#C6EFE9]/70 blur-2xl" />
         <div className="absolute bottom-[-40px] left-1/3 h-64 w-64 rounded-[55%_45%_60%_40%] bg-[#FFEFC2]/80 blur-2xl" />
@@ -198,13 +198,11 @@ export default function DashboardView({ usuario }: { usuario: UsuarioSessao }) {
   const [erroLixeira, setErroLixeira] = useState('');
   const [mensagemLixeira, setMensagemLixeira] = useState('');
 
-  // Formulário de criação
   const [nomeTurma, setNomeTurma] = useState('');
   const [criandoTurma, setCriandoTurma] = useState(false);
   const [mensagemSucesso, setMensagemSucesso] = useState('');
   const [erro, setErro] = useState('');
 
-  // Cópia de código
   const [copiadoId, setCopiadoId] = useState<string | null>(null);
 
   const isProfessor = usuario.perfil === 'professor';
@@ -487,7 +485,6 @@ export default function DashboardView({ usuario }: { usuario: UsuarioSessao }) {
 
           </div>
         ) : (
-          /* Aluno */
           <div className="rounded-[32px] border-[3px] border-[#0A2E4A] bg-white p-6 shadow-[0_6px_0_0_#0A2E4A]">
             <h2 className="font-sans text-xl font-extrabold">Minha Turma</h2>
             <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">

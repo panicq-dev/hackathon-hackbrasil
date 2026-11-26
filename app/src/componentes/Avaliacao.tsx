@@ -37,7 +37,6 @@ export default function Avaliacao({
     return () => window.clearTimeout(timeout);
   }, [mensagemSucesso]);
   
-  // Rastreia questões publicadas na comunidade localmente
   const [publicadas, setPublicadas] = useState<Record<number, boolean>>({});
   const [publicandoIndice, setPublicandoIndice] = useState<number | null>(null);
   const [publicandoTodas, setPublicandoTodas] = useState(false);

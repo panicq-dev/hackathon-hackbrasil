@@ -3,6 +3,11 @@
 import { pool } from "@/app/src/db";
 import { obterSessao, exigirSessao } from "@/app/src/lib/session";
 import { verificarAcerto } from "@/app/src/lib/desempenho";
+import {
+  agruparCausasRaiz,
+  canonicalizarCausaRaiz,
+  MINIMO_ERROS_CAUSA_RAIZ,
+} from "@/app/src/lib/causasRaiz";
 import { EstruturaQuestao } from "@/app/src/types";
 
 let tabelaInicializada = false;
@@ -210,7 +215,6 @@ export async function listarAvaliacoes(): Promise<{
 
       return { ok: true, avaliacoes };
     } else {
-      // Professor
       const professorId = Number(sessao.id);
 
       const res = await pool.query<{
@@ -288,7 +292,6 @@ export async function salvarRespostaAluno(
       return { erro: "Sua conta ou turma está inativa." };
     }
 
-    // Verifica se a avaliação existe e está ativa
     const avaliacaoRes = await pool.query<{
       id: string;
       ativo: boolean;
@@ -326,7 +329,6 @@ export async function salvarRespostaAluno(
       return { erro: "Você já respondeu esta avaliação. Não é possível refazê-la." };
     }
 
-    // Salva a resposta do aluno
     await pool.query(
       `INSERT INTO respostas_avaliacoes (avaliacao_id, aluno_id, respostas, criado_em)
        VALUES ($1, $2, $3::jsonb, NOW())`,
@@ -459,12 +461,12 @@ export async function obterDadosConsolidadosParaAnalise(avaliacaoId: string): Pr
       const respostasAluno = row.respostas ?? {};
       let totalCampos = 0;
       let totalAcertos = 0;
-      const lacunasAluno: string[] = [];
+      const errosAlunoPorCausa = new Map<string, number>();
 
       const diagnosticoQuestoes: DiagnosticoQuestao[] = questoes.map((q, qIndex) => {
         const mapaErros = new Map<string, string>();
         q.mapeamentoDeErros?.forEach((m) => {
-          mapaErros.set(m.id, m.erroProvavel);
+          mapaErros.set(m.id, canonicalizarCausaRaiz(m.erroProvavel));
         });
 
         const camposDiagnostico: DiagnosticoCampo[] = q.camposValidacao.map((campo) => {
@@ -476,7 +478,7 @@ export async function obterDadosConsolidadosParaAnalise(avaliacaoId: string): Pr
             totalAcertos++;
           } else {
             const erroProvavel = mapaErros.get(campo.id) ?? "Conceito Geral do Conteúdo";
-            lacunasAluno.push(erroProvavel);
+            errosAlunoPorCausa.set(erroProvavel, (errosAlunoPorCausa.get(erroProvavel) ?? 0) + 1);
             lacunasGerais[erroProvavel] = (lacunasGerais[erroProvavel] || 0) + 1;
           }
 
@@ -498,6 +500,10 @@ export async function obterDadosConsolidadosParaAnalise(avaliacaoId: string): Pr
       });
 
       const porcentagem = totalCampos > 0 ? Math.round((totalAcertos / totalCampos) * 100) : 0;
+      const lacunasConfirmadas = agruparCausasRaiz(
+        errosAlunoPorCausa.entries(),
+        MINIMO_ERROS_CAUSA_RAIZ
+      ).map((item) => item.causaRaiz);
 
       return {
         aluno: {
@@ -512,7 +518,7 @@ export async function obterDadosConsolidadosParaAnalise(avaliacaoId: string): Pr
         totalCampos,
         totalAcertos,
         porcentagemAcerto: porcentagem,
-        lacunasIdentificadas: Array.from(new Set(lacunasAluno)),
+        lacunasIdentificadas: lacunasConfirmadas,
       };
     });
 
@@ -589,14 +595,15 @@ export async function obterMatrizAnaliseDados(avaliacaoId: string): Promise<{
   }
 
   const totalErrosGerais = totalCamposAvaliados - totalAcertosGerais;
-  const ranking: RankingCausaRaiz[] = Object.entries(rel.lacunasGeraisTurma)
-    .map(([causaRaiz, totalErros]) => ({
-      causaRaiz,
-      totalErros,
-      porcentagemSobreTotalErros:
-        totalErrosGerais > 0 ? Math.round((totalErros / totalErrosGerais) * 100) : 0,
-    }))
-    .sort((a, b) => b.totalErros - a.totalErros);
+  const ranking: RankingCausaRaiz[] = agruparCausasRaiz(
+    Object.entries(rel.lacunasGeraisTurma),
+    MINIMO_ERROS_CAUSA_RAIZ
+  ).map(({ causaRaiz, totalErros }) => ({
+    causaRaiz,
+    totalErros,
+    porcentagemSobreTotalErros:
+      totalErrosGerais > 0 ? Math.round((totalErros / totalErrosGerais) * 100) : 0,
+  }));
 
   const taxaAcertoGeral =
     totalCamposAvaliados > 0
@@ -671,12 +678,12 @@ export async function obterFeedbackAluno(avaliacaoId: string): Promise<{
     const respostasDadas = respostaRes.rows[0].respostas ?? {};
     let totalCampos = 0;
     let totalAcertos = 0;
-    const lacunas: string[] = [];
+    const errosAlunoPorCausa = new Map<string, number>();
 
     const questoesFeedback: FeedbackQuestaoAluno[] = questoes.map((q, qIndex) => {
       const mapaErros = new Map<string, string>();
       q.mapeamentoDeErros?.forEach((m) => {
-        mapaErros.set(m.id, m.erroProvavel);
+        mapaErros.set(m.id, canonicalizarCausaRaiz(m.erroProvavel));
       });
 
       const campos = q.camposValidacao.map((c) => {
@@ -689,7 +696,7 @@ export async function obterFeedbackAluno(avaliacaoId: string): Promise<{
           totalAcertos++;
         } else {
           causaRaiz = mapaErros.get(c.id) ?? "Conceito Geral";
-          lacunas.push(causaRaiz);
+          errosAlunoPorCausa.set(causaRaiz, (errosAlunoPorCausa.get(causaRaiz) ?? 0) + 1);
         }
 
         return {
@@ -709,6 +716,10 @@ export async function obterFeedbackAluno(avaliacaoId: string): Promise<{
     });
 
     const porcentagem = totalCampos > 0 ? Math.round((totalAcertos / totalCampos) * 100) : 0;
+    const lacunasConfirmadas = agruparCausasRaiz(
+      errosAlunoPorCausa.entries(),
+      MINIMO_ERROS_CAUSA_RAIZ
+    ).map((item) => item.causaRaiz);
 
     return {
       ok: true,
@@ -718,7 +729,7 @@ export async function obterFeedbackAluno(avaliacaoId: string): Promise<{
         totalAcertos,
         porcentagemAcerto: porcentagem,
         questoes: questoesFeedback,
-        lacunasIdentificadas: Array.from(new Set(lacunas)),
+        lacunasIdentificadas: lacunasConfirmadas,
       },
     };
   } catch (e: unknown) {
