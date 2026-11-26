@@ -500,7 +500,7 @@ export default function DashboardView({ usuario }: { usuario: UsuarioSessao }) {
             </div>
             <div className="mt-5">
               <Link
-                href="/"
+                href="/avaliacoes"
                 className="inline-flex items-center gap-1 rounded-xl border-2 border-[#0A2E4A] bg-[#2496ED] px-4 py-2 font-sans text-xs font-extrabold text-white shadow-[0_2px_0_0_#16457E]"
               >
                 <span>Ver avaliações</span>
