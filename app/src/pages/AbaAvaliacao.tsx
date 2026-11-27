@@ -389,6 +389,18 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
                       <span className="rounded-full border-2 border-[#0A2E4A] bg-[#FFEFC2] px-2 py-0.5 text-xs font-extrabold">
                         {item.questoes?.length ?? 0} Q
                       </span>
+                      {isProfessor && (item.professorId === Number(usuario?.id) || Boolean(item.turmaId)) && (
+                        <button
+                          type="button"
+                          aria-label={`Mover avaliação ${item.id.slice(0, 8)} para a lixeira`}
+                          title="Mover avaliação para a lixeira"
+                          disabled={avaliacaoEmOperacao === item.id}
+                          onClick={() => void arquivarAvaliacao(item)}
+                          className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-red-700 bg-red-100 text-red-700 shadow-[0_2px_0_0_#991B1B] transition hover:bg-red-200 disabled:opacity-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -422,18 +434,6 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
                         <Users className="h-3.5 w-3.5" />
                         <span>Quem respondeu ({item.totalRespostas ?? 0})</span>
                       </button>
-                      {(item.professorId === Number(usuario?.id) || Boolean(item.turmaId)) && (
-                        <button
-                          type="button"
-                          aria-label={`Mover avaliação ${item.id.slice(0, 8)} para a lixeira`}
-                          title="Mover avaliação para a lixeira"
-                          disabled={avaliacaoEmOperacao === item.id}
-                          onClick={() => void arquivarAvaliacao(item)}
-                          className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-red-700 bg-red-100 text-red-700 shadow-[0_2px_0_0_#991B1B] transition hover:bg-red-200 disabled:opacity-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      )}
                     </>
                   )}
                 </div>
