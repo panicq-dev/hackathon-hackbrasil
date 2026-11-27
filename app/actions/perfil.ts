@@ -46,7 +46,7 @@ export async function obterConfiguracaoAvatar(): Promise<{
       return cadastrado ? [cadastrado] : [];
     });
 
-    if (opcoesDisponiveis.length < 15) {
+    if (opcoesDisponiveis.length < 25) {
       console.error("O catálogo de avatares está incompleto:", opcoesDisponiveis.length);
       return { erro: "O catálogo de avatares ainda não está disponível. Tente novamente mais tarde." };
     }

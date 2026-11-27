@@ -91,7 +91,7 @@ export async function loginUsuario(d: DadosLogin): Promise<ResultadoLogin> {
         senha_hash: string;
         avatar_id: string;
       }>(
-        `SELECT a.id, a.nome, a.email, a.matricula, a.turma_id, a.senha_hash, a.avatar_id
+       `SELECT a.id, a.nome, a.email, a.matricula, a.turma_id, a.senha_hash, a.avatar_id
            FROM alunos a
            JOIN turmas t ON t.id = a.turma_id
           WHERE lower(a.email) = $1

@@ -25,6 +25,7 @@ if (!process.env.DATABASE_URL) {
         '0001_lixeira_registros.sql',
         '0002_corrigir_alunos_de_turmas_arquivadas.sql',
         '0003_avatares_perfil.sql',
+        '0004_expandir_catalogo_avatares.sql',
       ]) {
         const sql = fs.readFileSync(path.join(scriptDir, '..', 'drizzle', migration), 'utf8');
         await client.query(sql);

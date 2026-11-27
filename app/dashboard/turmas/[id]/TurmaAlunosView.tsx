@@ -147,21 +147,21 @@ export default function TurmaAlunosView({ usuario, turmaId, turmaNome, alunos }:
           </span>
           <span className={ROTULO}>Banco de Questões</span>
         </Link>
-
-        <Link href="/lixeira" aria-label="Lixeira" className={FOCO}>
-          <span className={`${BOLINHA} bg-[#FFE3E3] text-red-700 group-hover:bg-[#FFD3DB]`}>
-            <Trash2 className="h-6 w-6" />
-          </span>
-          <span className={ROTULO}>Lixeira</span>
-        </Link>
-
+        
         <Link href="/configuracoes" aria-label="Configurações" className={FOCO}>
           <span className={`${BOLINHA} bg-white group-hover:bg-[#C6EFE9]`}>
             <Settings className="h-6 w-6" strokeWidth={2.4} />
           </span>
           <span className={ROTULO}>Configurações</span>
         </Link>
-      </nav>
+        
+        <Link href="/lixeira" aria-label="Lixeira" className={FOCO}>
+          <span className={`${BOLINHA} bg-[#FFE3E3] text-red-700 group-hover:bg-[#FFD3DB]`}>
+            <Trash2 className="h-6 w-6" />
+          </span>
+          <span className={ROTULO}>Lixeira</span>
+        </Link>
+        </nav>
 
       <main className="relative z-10 mx-auto max-w-5xl space-y-6">
         <div>
