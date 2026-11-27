@@ -14,6 +14,16 @@ export const AVATARES_PERFIL = [
   { id: "avatar-13", nome: "Sofia", pele: "#E8B899", cabelo: "#382326", roupa: "#DB6470", fundo: "#FCE2E4", penteado: 4, oculos: false },
   { id: "avatar-14", nome: "Miguel", pele: "#D29A72", cabelo: "#29211F", roupa: "#428EBD", fundo: "#DDF0F9", penteado: 0, oculos: true },
   { id: "avatar-15", nome: "Yasmin", pele: "#965C43", cabelo: "#21191B", roupa: "#C88D25", fundo: "#FFF0CE", penteado: 1, oculos: false },
+  { id: "avatar-16", nome: "Alex", pele: "#F7E0C8", cabelo: "#B89362", roupa: "#345B86", fundo: "#E4F0FB", penteado: 5, oculos: false },
+  { id: "avatar-17", nome: "Samira", pele: "#603D32", cabelo: "#171416", roupa: "#D65F79", fundo: "#F9E1E8", penteado: 6, oculos: true },
+  { id: "avatar-18", nome: "Enzo", pele: "#D89A70", cabelo: "#A94D32", roupa: "#46876A", fundo: "#E0F2E6", penteado: 7, oculos: false },
+  { id: "avatar-19", nome: "Aisha", pele: "#C58B68", cabelo: "#46312B", roupa: "#7A68B2", fundo: "#EEE8FA", penteado: 8, oculos: false },
+  { id: "avatar-20", nome: "Gael", pele: "#F1C7A5", cabelo: "#4A332B", roupa: "#D19B2A", fundo: "#FFF2D0", penteado: 9, oculos: false },
+  { id: "avatar-21", nome: "Joana", pele: "#8C5945", cabelo: "#211A19", roupa: "#398A91", fundo: "#DDF3F1", penteado: 5, oculos: true },
+  { id: "avatar-22", nome: "Omar", pele: "#B87A59", cabelo: "#262020", roupa: "#3D73A8", fundo: "#E2EDFA", penteado: 6, oculos: false },
+  { id: "avatar-23", nome: "Helena", pele: "#F4D6BF", cabelo: "#C06B47", roupa: "#A55C9D", fundo: "#F5E5F4", penteado: 7, oculos: false },
+  { id: "avatar-24", nome: "Yasmin", pele: "#754A39", cabelo: "#21191B", roupa: "#CB7A36", fundo: "#FBE7D8", penteado: 8, oculos: true },
+  { id: "avatar-25", nome: "Noemi", pele: "#D8AC8B", cabelo: "#3A2925", roupa: "#C95768", fundo: "#FCE5E8", penteado: 9, oculos: false },
 ] as const;
 
 export type AvatarPerfilId = (typeof AVATARES_PERFIL)[number]["id"];

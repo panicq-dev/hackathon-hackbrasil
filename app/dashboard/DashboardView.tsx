@@ -174,6 +174,18 @@ export function DashboardChrome({
           </Link>
         )}
 
+        <Link
+          href="/configuracoes"
+          aria-label="Configurações"
+          aria-current={estaNasConfiguracoes ? 'page' : undefined}
+          className={FOCO}
+        >
+          <span className={`${BOLINHA} ${estaNasConfiguracoes ? '-translate-y-0.5 bg-[#FFC53D] shadow-[0_4px_0_0_#0A2E4A]' : 'bg-white group-hover:bg-[#C6EFE9]'}`}>
+            <Settings className="h-6 w-6" strokeWidth={2.4} />
+          </span>
+          <span className={ROTULO}>Configurações</span>
+        </Link>
+
         {isProfessor && (
           <Link
             href="/lixeira"
@@ -193,18 +205,6 @@ export function DashboardChrome({
             <span className={ROTULO}>Lixeira</span>
           </Link>
         )}
-
-        <Link
-          href="/configuracoes"
-          aria-label="Configurações"
-          aria-current={estaNasConfiguracoes ? 'page' : undefined}
-          className={FOCO}
-        >
-          <span className={`${BOLINHA} ${estaNasConfiguracoes ? '-translate-y-0.5 bg-[#FFC53D] shadow-[0_4px_0_0_#0A2E4A]' : 'bg-white group-hover:bg-[#C6EFE9]'}`}>
-            <Settings className="h-6 w-6" strokeWidth={2.4} />
-          </span>
-          <span className={ROTULO}>Configurações</span>
-        </Link>
       </nav>
 
       {children}
