@@ -1,6 +1,5 @@
 "use server";
 
-import { GoogleGenAI, Schema, Type } from "@google/genai";
 import Groq from "groq-sdk";
 import { carregarDadosTurma } from "@/app/src/lib/dadosTurma";
 import {
@@ -9,6 +8,7 @@ import {
   DificuldadesTurma,
   EstatisticasAluno,
 } from "@/app/src/lib/estatisticasAluno";
+import { ehErroValidacaoJsonGroq } from "@/app/src/lib/groqErrors";
 import { criarPromptInsightsAluno } from "@/app/src/lib/insightsPedagogicos";
 import type { InsightsAluno } from "@/app/src/lib/insightsPedagogicos";
 import { exigirSessao } from "@/app/src/lib/session";
@@ -26,17 +26,6 @@ export type ResultadoDificuldadesTurma = {
   ok?: boolean;
   erro?: string;
   dificuldades?: DificuldadesTurma;
-};
-
-const insightsSchema: Schema = {
-  type: Type.OBJECT,
-  properties: {
-    resumo: { type: Type.STRING },
-    conteudosParaRetomar: { type: Type.ARRAY, items: { type: Type.STRING } },
-    recomendacoesDeEstudo: { type: Type.ARRAY, items: { type: Type.STRING } },
-    proximaPratica: { type: Type.STRING },
-  },
-  required: ["resumo", "conteudosParaRetomar", "recomendacoesDeEstudo", "proximaPratica"],
 };
 
 function validarPeriodo(ano: number, bimestre: number | null): boolean {
@@ -146,60 +135,60 @@ export async function gerarInsightsAluno(
       return { erro: "Ainda não há respostas suficientes para gerar insights." };
     }
 
+    const apiKeyGroq = process.env.GROQ_API_KEY;
+    if (!apiKeyGroq) {
+      return { erro: "Configure GROQ_API_KEY para habilitar os insights por IA." };
+    }
+
     const prompt = criarPromptInsightsAluno(estatisticas);
     let insights: InsightsAluno | null = null;
     let ultimoErro: unknown = null;
-    const apiKeyGemini = process.env.GEMINI_API_KEY;
 
-    if (apiKeyGemini) {
-      const ia = new GoogleGenAI({ apiKey: apiKeyGemini });
-      for (const modelo of ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]) {
-        try {
-          const resposta = await ia.models.generateContent({
-            model: modelo,
-            contents: prompt,
-            config: { responseMimeType: "application/json", responseSchema: insightsSchema, temperature: 0.4 },
-          });
-          if (resposta.text) insights = interpretarInsights(resposta.text);
-          if (insights) break;
-          ultimoErro = new Error("O Gemini retornou um formato de insight inválido.");
-        } catch (erroGemini) {
-          ultimoErro = erroGemini;
-          console.warn(`Gemini ${modelo} indisponível para gerar insights; tentando o próximo modelo.`);
-        }
-      }
-    }
+    try {
+      const groq = new Groq({ apiKey: apiKeyGroq });
+      const mensagensGroq = [
+        {
+          role: "system" as const,
+          content: 'Responda apenas com JSON válido, sem markdown, no formato {"resumo":"...","conteudosParaRetomar":["..."],"recomendacoesDeEstudo":["..."],"proximaPratica":"..."}.',
+        },
+        { role: "user" as const, content: prompt },
+      ];
+      const parametrosGroq = {
+        model: "openai/gpt-oss-120b",
+        messages: mensagensGroq,
+        response_format: { type: "json_object" as const },
+        reasoning_effort: "low" as const,
+        reasoning_format: "hidden" as const,
+        temperature: 0.4,
+        max_completion_tokens: 1200,
+      };
+      const resposta = await groq.chat.completions.create(parametrosGroq).catch((erro: unknown) => {
+        if (!ehErroValidacaoJsonGroq(erro)) throw erro;
 
-    if (!insights && process.env.GROQ_API_KEY) {
-      try {
-        const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-        const resposta = await groq.chat.completions.create({
-          model: "llama-3.3-70b-versatile",
+        console.warn("Groq rejeitou o JSON dos insights; tentando gerar novamente.");
+        return groq.chat.completions.create({
+          ...parametrosGroq,
           messages: [
+            ...mensagensGroq,
             {
-              role: "system",
-              content: 'Responda apenas com JSON válido, sem markdown, no formato {"resumo":"...","conteudosParaRetomar":["..."],"recomendacoesDeEstudo":["..."],"proximaPratica":"..."}.',
+              role: "system" as const,
+              content: "A resposta anterior não foi JSON válido. Gere novamente do zero, retornando um único objeto JSON com todos os campos solicitados.",
             },
-            { role: "user", content: prompt },
           ],
-          temperature: 0.4,
-          max_tokens: 700,
+          temperature: 0.2,
+          max_completion_tokens: 1800,
         });
-        const texto = resposta.choices[0]?.message?.content;
-        if (typeof texto === "string") insights = interpretarInsights(texto);
-      } catch (erroGroq) {
-        ultimoErro = erroGroq;
-        console.error("Groq também falhou ao gerar insights:", erroGroq);
-      }
+      });
+      const texto = resposta.choices[0]?.message?.content;
+      if (typeof texto === "string") insights = interpretarInsights(texto);
+      if (!insights) ultimoErro = "Groq retornou uma resposta fora do formato esperado.";
+    } catch (erroGroq) {
+      ultimoErro = erroGroq;
     }
 
     if (!insights) {
-      console.error("Nenhum provedor de IA conseguiu gerar insights:", ultimoErro);
-      return {
-        erro: process.env.GEMINI_API_KEY || process.env.GROQ_API_KEY
-          ? "A IA está temporariamente indisponível. Tente novamente mais tarde."
-          : "Configure GEMINI_API_KEY ou GROQ_API_KEY para habilitar os insights por IA.",
-      };
+      console.error("Groq não conseguiu gerar insights:", ultimoErro);
+      return { erro: "A IA está temporariamente indisponível. Tente novamente mais tarde." };
     }
     return { ok: true, insights };
   } catch (erro) {
