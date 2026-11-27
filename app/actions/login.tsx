@@ -57,8 +57,9 @@ export async function loginUsuario(d: DadosLogin): Promise<ResultadoLogin> {
         nome: string;
         email: string;
         senha_hash: string;
+        avatar_id: string;
       }>(
-        `SELECT id, nome, email, senha_hash
+        `SELECT id, nome, email, senha_hash, avatar_id
            FROM professores
           WHERE lower(email) = $1
           LIMIT 1`,
@@ -75,6 +76,7 @@ export async function loginUsuario(d: DadosLogin): Promise<ResultadoLogin> {
         nome: row.nome,
         email: row.email,
         perfil: "professor" as const,
+        avatarId: row.avatar_id,
       };
 
       await criarSessao(usuario);
@@ -87,8 +89,9 @@ export async function loginUsuario(d: DadosLogin): Promise<ResultadoLogin> {
         matricula: string;
         turma_id: string;
         senha_hash: string;
+        avatar_id: string;
       }>(
-        `SELECT a.id, a.nome, a.email, a.matricula, a.turma_id, a.senha_hash
+        `SELECT a.id, a.nome, a.email, a.matricula, a.turma_id, a.senha_hash, a.avatar_id
            FROM alunos a
            JOIN turmas t ON t.id = a.turma_id
           WHERE lower(a.email) = $1
@@ -110,6 +113,7 @@ export async function loginUsuario(d: DadosLogin): Promise<ResultadoLogin> {
         perfil: "aluno" as const,
         turmaId: row.turma_id,
         matricula: row.matricula,
+        avatarId: row.avatar_id,
       };
 
       await criarSessao(usuario);

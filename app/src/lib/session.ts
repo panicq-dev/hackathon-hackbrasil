@@ -10,6 +10,7 @@ export type UsuarioSessao = {
   perfil: Perfil;
   turmaId?: string;
   matricula?: string;
+  avatarId?: string;
   exp: number;
 };
 

@@ -3,14 +3,28 @@ import { sql } from "drizzle-orm"
 
 export const avaliacaoCodigoSeq = pgSequence("avaliacao_codigo_seq", { startWith: "246", increment: "1", minValue: "1", maxValue: "9223372036854775807", cache: "1", cycle: false })
 
+export const avataresPerfil = pgTable("avatares_perfil", {
+	id: varchar({ length: 32 }).primaryKey().notNull(),
+	nome: text().notNull(),
+	ordem: integer().notNull(),
+}, (table) => [
+	uniqueIndex("avatares_perfil_ordem_uidx").on(table.ordem),
+]);
+
 export const professores = pgTable("professores", {
 	id: integer().primaryKey().generatedAlwaysAsIdentity({ name: "professores_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
 	nome: text().notNull(),
 	email: text().notNull(),
 	senhaHash: text("senha_hash").notNull(),
+	avatarId: varchar("avatar_id", { length: 32 }).default("avatar-01").notNull(),
 	criadoEm: timestamp("criado_em", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
 	uniqueIndex("professores_email_uidx").using("btree", sql`lower(email)`),
+	foreignKey({
+		columns: [table.avatarId],
+		foreignColumns: [avataresPerfil.id],
+		name: "professores_avatar_id_fkey"
+	}),
 ]);
 
 export const turmas = pgTable("turmas", {
@@ -37,6 +51,7 @@ export const alunos = pgTable("alunos", {
 	nome: text().notNull(),
 	email: text().notNull(),
 	senhaHash: text("senha_hash").notNull(),
+	avatarId: varchar("avatar_id", { length: 32 }).default("avatar-01").notNull(),
 	turmaId: varchar("turma_id", { length: 8 }).notNull(),
 	ativo: boolean().default(true).notNull(),
 	arquivadaEm: timestamp("arquivada_em", { withTimezone: true, mode: 'string' }),
@@ -50,6 +65,11 @@ export const alunos = pgTable("alunos", {
 			columns: [table.turmaId],
 			foreignColumns: [turmas.id],
 			name: "alunos_turma_id_fkey"
+		}),
+		foreignKey({
+			columns: [table.avatarId],
+			foreignColumns: [avataresPerfil.id],
+			name: "alunos_avatar_id_fkey"
 		}),
 	unique("alunos_matricula_key").on(table.matricula),
 ]);
