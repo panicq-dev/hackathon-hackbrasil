@@ -38,6 +38,7 @@ export type DesempenhoTurma = {
   alunos: {
     id: number;
     nome: string;
+    avatarId: string;
     matricula: string;
     totalAvaliacoes: number;
     totalRespondidas: number;
@@ -88,8 +89,9 @@ export async function obterDesempenhoDaTurma(
       id: number;
       nome: string;
       matricula: string;
+      avatar_id: string;
     }>(
-      `SELECT id, nome, matricula
+      `SELECT id, nome, matricula, avatar_id
          FROM alunos
         WHERE turma_id = $1 AND ativo = true
         ORDER BY nome ASC`,
@@ -149,10 +151,20 @@ export async function obterDesempenhoDaTurma(
     }
 
     const resultado = calcularDesempenhoTurma(
-      alunosRes.rows,
+      alunosRes.rows.map(({ id, nome, matricula }) => ({ id, nome, matricula })),
       avaliacoesPeriodo,
       respostas
     );
+    const avatarIdPorAluno = new Map(
+      alunosRes.rows.map((aluno) => [aluno.id, aluno.avatar_id])
+    );
+    const alunosComAvatar = resultado.alunos.map((aluno) => {
+      const avatarId = avatarIdPorAluno.get(aluno.id);
+      if (!avatarId) {
+        throw new Error(`Avatar não encontrado para o aluno ${aluno.id}.`);
+      }
+      return { ...aluno, avatarId };
+    });
 
     return {
       ok: true,
@@ -164,6 +176,7 @@ export async function obterDesempenhoDaTurma(
         anosDisponiveis,
         totalAvaliacoes: avaliacoesPeriodo.length,
         ...resultado,
+        alunos: alunosComAvatar,
       },
     };
   } catch (e: unknown) {
