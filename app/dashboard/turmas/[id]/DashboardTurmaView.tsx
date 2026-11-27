@@ -36,10 +36,10 @@ type FiltroEntrega = "todas" | "entregues" | "pendentes";
 type Ordenacao = "nome" | "desempenho";
 
 const ROTULOS_FAIXA: Record<DesempenhoTurma["alunos"][number]["faixa"], string> = {
-  consolidado: "Consolidado",
-  desenvolvimento: "Em desenvolvimento",
-  apoio: "Precisa de apoio",
-  "sem-avaliacao": "Sem avaliação",
+  consolidado: "Acertos recorrentes",
+  desenvolvimento: "Prática em andamento",
+  apoio: "Conteúdos para retomar",
+  "sem-avaliacao": "Sem respostas",
 };
 
 const CORES_FAIXA: Record<DesempenhoTurma["alunos"][number]["faixa"], string> = {
@@ -334,11 +334,11 @@ export default function DashboardTurmaView({
                 <CheckCircle2 className="h-5 w-5" />
               </span>
               <div>
-                <p className="text-xs font-extrabold text-[#4A6B85]">CONSOLIDADOS</p>
+                <p className="text-xs font-extrabold text-[#4A6B85]">ACERTOS RECORRENTES</p>
                 <p className="font-sans text-2xl font-extrabold">
                   {carregando ? "—" : desempenho?.consolidados ?? 0}
                 </p>
-                <p className="text-xs font-semibold text-[#4A6B85]">80% ou mais</p>
+                <p className="text-xs font-semibold text-[#4A6B85]">Acertos registrados nos conteúdos avaliados</p>
               </div>
             </article>
             <article className="flex items-center gap-3 rounded-[22px] border-[3px] border-[#0A2E4A] bg-white p-4 shadow-[0_4px_0_0_#0A2E4A]">
@@ -346,11 +346,11 @@ export default function DashboardTurmaView({
                 <Users className="h-5 w-5" />
               </span>
               <div>
-                <p className="text-xs font-extrabold text-[#4A6B85]">EM DESENVOLVIMENTO</p>
+                <p className="text-xs font-extrabold text-[#4A6B85]">PRÁTICA EM ANDAMENTO</p>
                 <p className="font-sans text-2xl font-extrabold">
                   {carregando ? "—" : desempenho?.emDesenvolvimento ?? 0}
                 </p>
-                <p className="text-xs font-semibold text-[#4A6B85]">50% a 79%</p>
+                <p className="text-xs font-semibold text-[#4A6B85]">Acertos e erros registrados</p>
               </div>
             </article>
             <article className="flex items-center gap-3 rounded-[22px] border-[3px] border-[#0A2E4A] bg-white p-4 shadow-[0_4px_0_0_#0A2E4A]">
@@ -358,11 +358,11 @@ export default function DashboardTurmaView({
                 <GraduationCap className="h-5 w-5" />
               </span>
               <div>
-                <p className="text-xs font-extrabold text-[#4A6B85]">PRECISAM DE APOIO</p>
+                <p className="text-xs font-extrabold text-[#4A6B85]">CONTEÚDOS PARA RETOMAR</p>
                 <p className="font-sans text-2xl font-extrabold">
                   {carregando ? "—" : desempenho?.precisamDeApoio ?? 0}
                 </p>
-                <p className="text-xs font-semibold text-[#4A6B85]">Abaixo de 50%</p>
+                <p className="text-xs font-semibold text-[#4A6B85]">Respostas incorretas registradas</p>
               </div>
             </article>
             <article className="flex items-center gap-3 rounded-[22px] border-[3px] border-[#0A2E4A] bg-white p-4 shadow-[0_4px_0_0_#0A2E4A]">
@@ -384,11 +384,11 @@ export default function DashboardTurmaView({
                 <GraduationCap className="h-5 w-5" />
               </span>
               <div>
-                <p className="text-xs font-extrabold text-[#4A6B85]">SEM AVALIAÇÃO</p>
+                <p className="text-xs font-extrabold text-[#4A6B85]">SEM RESPOSTAS</p>
                 <p className="font-sans text-2xl font-extrabold">
                   {carregando ? "—" : desempenho?.alunos.filter((aluno) => aluno.faixa === "sem-avaliacao").length ?? 0}
                 </p>
-                <p className="text-xs font-semibold text-[#4A6B85]">Sem respostas no período</p>
+                <p className="text-xs font-semibold text-[#4A6B85]">Nenhuma resposta registrada neste período</p>
               </div>
             </article>
           </div>
@@ -500,7 +500,7 @@ export default function DashboardTurmaView({
             <div>
               <h2 className="font-sans text-xl font-extrabold">Alunos da turma</h2>
               <p className="mt-1 text-xs font-semibold text-[#4A6B85]">
-                Cada aluno tem seu ritmo. Acompanhe a evolução nas avaliações do período.
+                Respostas e conteúdos registrados para cada aluno neste período.
               </p>
             </div>
             <span className="text-xs font-extrabold text-[#4A6B85]">
@@ -520,18 +520,18 @@ export default function DashboardTurmaView({
               />
             </label>
             <label className="rounded-[14px] border-2 border-[#0A2E4A] bg-[#EBF5FF] px-3 py-2.5 shadow-[0_2px_0_0_#0A2E4A]">
-              <span className="sr-only">Filtrar por desempenho</span>
+              <span className="sr-only">Filtrar por situação das respostas</span>
               <select
-                aria-label="Filtrar por desempenho"
+                aria-label="Filtrar por situação das respostas"
                 value={filtroNivel}
                 onChange={(event) => setFiltroNivel(event.target.value as FiltroNivel)}
                 className="cursor-pointer bg-transparent text-xs font-extrabold outline-none"
               >
-                <option value="todos">Todos os níveis</option>
-                <option value="consolidado">Consolidados</option>
-                <option value="desenvolvimento">Em desenvolvimento</option>
-                <option value="apoio">Precisam de apoio</option>
-                <option value="sem-avaliacao">Sem avaliação</option>
+                <option value="todos">Todas as situações</option>
+                <option value="consolidado">Acertos recorrentes</option>
+                <option value="desenvolvimento">Prática em andamento</option>
+                <option value="apoio">Conteúdos para retomar</option>
+                <option value="sem-avaliacao">Sem respostas</option>
               </select>
             </label>
             <label className="rounded-[14px] border-2 border-[#0A2E4A] bg-[#EBF5FF] px-3 py-2.5 shadow-[0_2px_0_0_#0A2E4A]">
