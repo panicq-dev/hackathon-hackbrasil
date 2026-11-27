@@ -15,7 +15,6 @@ import {
   Target,
   TrendingUp,
   Trash2,
-  UserRound,
   Users,
 } from "lucide-react";
 import { enviarParaLixeira } from "@/app/actions/lixeira";
@@ -24,6 +23,7 @@ import type { DesempenhoTurma } from "@/app/actions/turmas";
 import { obterDificuldadesDaTurma } from "@/app/actions/alunos";
 import type { DificuldadesTurma } from "@/app/src/lib/estatisticasAluno";
 import { DashboardChrome } from "../../DashboardView";
+import AvatarPerfil from "@/app/src/componentes/AvatarPerfil";
 import type { UsuarioSessao } from "@/app/src/lib/session";
 
 type Props = {
@@ -592,8 +592,8 @@ export default function DashboardTurmaView({
                     href={`/dashboard/turmas/${encodeURIComponent(turmaId)}/alunos/${aluno.id}?ano=${ano}&bimestre=${bimestre ?? "ano"}`}
                     className="block rounded-xl outline-none transition hover:bg-[#F6FBFF] focus-visible:ring-4 focus-visible:ring-[#1D63ED]/40"
                   >
-                    <span className="mx-auto mb-2 grid h-[62px] w-[62px] place-items-center rounded-full border-[3px] border-[#0A2E4A] bg-[#EBF5FF]">
-                      <UserRound className="h-8 w-8 text-[#4A6B85]" />
+                    <span className="mx-auto mb-2 grid h-[62px] w-[62px] place-items-center overflow-hidden rounded-full border-[3px] border-[#0A2E4A] bg-[#EBF5FF]">
+                      <AvatarPerfil avatarId={aluno.avatarId} className="h-full w-full" decorativo />
                     </span>
                     <h3 className="truncate font-sans text-base font-extrabold" title={aluno.nome}>
                       {aluno.nome}
