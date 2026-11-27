@@ -9,6 +9,8 @@ import {
   DificuldadesTurma,
   EstatisticasAluno,
 } from "@/app/src/lib/estatisticasAluno";
+import { criarPromptInsightsAluno } from "@/app/src/lib/insightsPedagogicos";
+import type { InsightsAluno } from "@/app/src/lib/insightsPedagogicos";
 import { exigirSessao } from "@/app/src/lib/session";
 
 export type ResultadoEstatisticasAluno = {
@@ -26,22 +28,15 @@ export type ResultadoDificuldadesTurma = {
   dificuldades?: DificuldadesTurma;
 };
 
-export type InsightsAluno = {
-  resumo: string;
-  prioridades: string[];
-  estrategias: string[];
-  acompanhamento: string;
-};
-
 const insightsSchema: Schema = {
   type: Type.OBJECT,
   properties: {
     resumo: { type: Type.STRING },
-    prioridades: { type: Type.ARRAY, items: { type: Type.STRING } },
-    estrategias: { type: Type.ARRAY, items: { type: Type.STRING } },
-    acompanhamento: { type: Type.STRING },
+    conteudosParaRetomar: { type: Type.ARRAY, items: { type: Type.STRING } },
+    recomendacoesDeEstudo: { type: Type.ARRAY, items: { type: Type.STRING } },
+    proximaPratica: { type: Type.STRING },
   },
-  required: ["resumo", "prioridades", "estrategias", "acompanhamento"],
+  required: ["resumo", "conteudosParaRetomar", "recomendacoesDeEstudo", "proximaPratica"],
 };
 
 function validarPeriodo(ano: number, bimestre: number | null): boolean {
@@ -54,11 +49,11 @@ function validarInsights(dados: unknown): InsightsAluno | null {
   const insights = dados as Partial<InsightsAluno>;
   if (
     typeof insights.resumo !== "string" ||
-    !Array.isArray(insights.prioridades) ||
-    !insights.prioridades.every((item) => typeof item === "string") ||
-    !Array.isArray(insights.estrategias) ||
-    !insights.estrategias.every((item) => typeof item === "string") ||
-    typeof insights.acompanhamento !== "string"
+    !Array.isArray(insights.conteudosParaRetomar) ||
+    !insights.conteudosParaRetomar.every((item) => typeof item === "string") ||
+    !Array.isArray(insights.recomendacoesDeEstudo) ||
+    !insights.recomendacoesDeEstudo.every((item) => typeof item === "string") ||
+    typeof insights.proximaPratica !== "string"
   ) return null;
   return insights as InsightsAluno;
 }
@@ -69,31 +64,6 @@ function interpretarInsights(texto: string): InsightsAluno | null {
   } catch {
     return null;
   }
-}
-
-function criarPrompt(estatisticas: EstatisticasAluno): string {
-  const contexto = {
-    taxaAcerto: estatisticas.percentual,
-    entregas: `${estatisticas.totalRespondidas}/${estatisticas.totalAvaliacoes}`,
-    pendencias: estatisticas.pendencias,
-    camposEmBranco: estatisticas.camposEmBranco,
-    tendencia: estatisticas.tendencia,
-    variacaoRecente: estatisticas.variacaoRecente,
-    causasRaizMaisFrequentes: estatisticas.causasRaiz.slice(0, 5).map((item) => ({
-      causa: item.causaRaiz,
-      erros: item.totalErros,
-    })),
-    pontosFortes: estatisticas.pontosFortes.slice(0, 5).map((item) => item.campo),
-    desempenhoPorTipo: estatisticas.porTipoCampo.map((item) => ({
-      tipo: item.tipo,
-      taxaAcerto: item.percentual,
-    })),
-  };
-
-  return `Você é um assistente pedagógico que apoia professores com sugestões práticas, respeitosas e baseadas em evidências. Analise somente os indicadores individuais fornecidos; não compare o estudante com outros alunos ou com a turma, não faça diagnósticos clínicos nem rotule o estudante. Priorize até três habilidades que merecem intervenção, proponha estratégias concretas de sala de aula e uma forma simples de acompanhar o progresso individual. Se faltarem dados, deixe isso explícito. Responda em português do Brasil como JSON válido no formato {"resumo":"...","prioridades":["..."],"estrategias":["..."],"acompanhamento":"..."}.
-
-Indicadores agregados e anônimos:
-${JSON.stringify(contexto)}`;
 }
 
 export async function obterEstatisticasDoAluno(
@@ -176,7 +146,7 @@ export async function gerarInsightsAluno(
       return { erro: "Ainda não há respostas suficientes para gerar insights." };
     }
 
-    const prompt = criarPrompt(estatisticas);
+    const prompt = criarPromptInsightsAluno(estatisticas);
     let insights: InsightsAluno | null = null;
     let ultimoErro: unknown = null;
     const apiKeyGemini = process.env.GEMINI_API_KEY;
@@ -208,12 +178,12 @@ export async function gerarInsightsAluno(
           messages: [
             {
               role: "system",
-              content: 'Você é um assistente pedagógico. Responda apenas com JSON válido, sem markdown, no formato {"resumo":"...","prioridades":["..."],"estrategias":["..."],"acompanhamento":"..."}.',
+              content: 'Responda apenas com JSON válido, sem markdown, no formato {"resumo":"...","conteudosParaRetomar":["..."],"recomendacoesDeEstudo":["..."],"proximaPratica":"..."}.',
             },
             { role: "user", content: prompt },
           ],
           temperature: 0.4,
-          max_tokens: 1200,
+          max_tokens: 700,
         });
         const texto = resposta.choices[0]?.message?.content;
         if (typeof texto === "string") insights = interpretarInsights(texto);

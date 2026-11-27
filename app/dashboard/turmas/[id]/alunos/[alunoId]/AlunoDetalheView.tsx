@@ -12,14 +12,9 @@ import {
   Lightbulb,
   Sparkles,
   Target,
-  TrendingDown,
-  TrendingUp,
 } from "lucide-react";
-import {
-  gerarInsightsAluno,
-  obterEstatisticasDoAluno,
-} from "@/app/actions/alunos";
-import type { InsightsAluno } from "@/app/actions/alunos";
+import { gerarInsightsAluno, obterEstatisticasDoAluno } from "@/app/actions/alunos";
+import type { InsightsAluno } from "@/app/src/lib/insightsPedagogicos";
 import { DashboardChrome } from "../../../../DashboardView";
 import type { UsuarioSessao } from "@/app/src/lib/session";
 import type { EstatisticasAluno } from "@/app/src/lib/estatisticasAluno";
@@ -75,7 +70,7 @@ function CartaoIndicador({
 }
 
 function obterLeituraProfessor(estatisticas: EstatisticasAluno) {
-  const maiorDificuldade = estatisticas.causasRaiz[0];
+  const causaRecorrente = estatisticas.causasRaiz[0];
 
   if (estatisticas.percentual === null) {
     return {
@@ -94,25 +89,14 @@ function obterLeituraProfessor(estatisticas: EstatisticasAluno) {
 
   if (estatisticas.faixa === "apoio") {
     return {
-      status: "Precisa de apoio",
-      titulo: "Atenção prioritária",
-      descricao: maiorDificuldade
-        ? `Aproveitamento de ${estatisticas.percentual}%. Retome principalmente ${maiorDificuldade.causaRaiz} (${maiorDificuldade.totalErros} erros).`
-        : `Aproveitamento de ${estatisticas.percentual}%. Revise as respostas incorretas para planejar uma retomada direcionada.`,
+      status: "Conteúdos para retomar",
+      titulo: "Retomada de conteúdos",
+      descricao: causaRecorrente
+        ? `Aproveitamento de ${estatisticas.percentual}%. Foram registradas ${causaRecorrente.totalErros} respostas incorretas em ${causaRecorrente.causaRaiz}.`
+        : `Aproveitamento de ${estatisticas.percentual}%. Há respostas incorretas nos conteúdos avaliados neste período.`,
       variante: "alerta" as const,
       cor: "bg-[#FFE3E3]",
       icone: <AlertTriangle className="h-5 w-5" />,
-    };
-  }
-
-  if (estatisticas.tendencia === "queda" && estatisticas.variacaoRecente !== null) {
-    return {
-      status: "Queda recente",
-      titulo: "Observe a evolução recente",
-      descricao: `O aproveitamento caiu ${Math.abs(estatisticas.variacaoRecente)} pontos na última avaliação respondida. Confira as questões recentes antes de definir a retomada.`,
-      variante: "alerta" as const,
-      cor: "bg-[#FFE3E3]",
-      icone: <TrendingDown className="h-5 w-5" />,
     };
   }
 
@@ -120,7 +104,7 @@ function obterLeituraProfessor(estatisticas: EstatisticasAluno) {
     return {
       status: "Entregas pendentes",
       titulo: `${estatisticas.pendencias} avaliação(ões) pendente(s)`,
-      descricao: "O resultado ainda está parcial. Acompanhe as entregas antes de concluir a avaliação do período.",
+      descricao: "Os indicadores refletem as respostas registradas até agora e podem mudar com novas entregas.",
       variante: "atencao" as const,
       cor: "bg-[#FFEFC2]",
       icone: <AlertTriangle className="h-5 w-5" />,
@@ -129,11 +113,11 @@ function obterLeituraProfessor(estatisticas: EstatisticasAluno) {
 
   if (estatisticas.faixa === "desenvolvimento") {
     return {
-      status: "Acompanhar",
-      titulo: "Acompanhe de perto",
-      descricao: maiorDificuldade
-        ? `Aproveitamento de ${estatisticas.percentual}%. Reforce ${maiorDificuldade.causaRaiz}, a dificuldade mais recorrente.`
-        : `Aproveitamento de ${estatisticas.percentual}%. Continue acompanhando as habilidades que precisam de reforço.`,
+      status: "Prática em andamento",
+      titulo: "Respostas em diferentes etapas",
+      descricao: causaRecorrente
+        ? `Aproveitamento de ${estatisticas.percentual}%. Em ${causaRecorrente.causaRaiz}, foram registradas ${causaRecorrente.totalErros} respostas incorretas.`
+        : `Aproveitamento de ${estatisticas.percentual}%. Há acertos e respostas incorretas nos conteúdos avaliados.`,
       variante: "atencao" as const,
       cor: "bg-[#FFEFC2]",
       icone: <Target className="h-5 w-5" />,
@@ -141,11 +125,9 @@ function obterLeituraProfessor(estatisticas: EstatisticasAluno) {
   }
 
   return {
-    status: "Consolidado",
-    titulo: "Aprendizagem consistente neste período",
-    descricao: maiorDificuldade
-      ? `Mantenha os desafios e observe ${maiorDificuldade.causaRaiz}, único ponto com erros recorrentes.`
-      : "Mantenha os desafios e continue acompanhando a evolução do aluno.",
+    status: "Acertos recorrentes",
+    titulo: "Acertos nos conteúdos avaliados",
+    descricao: "Foram registrados acertos nos conteúdos avaliados neste período.",
     variante: "positivo" as const,
     cor: "bg-[#D1F2D9]",
     icone: <CheckCircle2 className="h-5 w-5" />,
@@ -235,13 +217,6 @@ export default function AlunoDetalheView({
   }
 
   const linkVoltar = `/dashboard/turmas/${encodeURIComponent(turmaId)}?ano=${ano}&bimestre=${bimestre ?? "ano"}`;
-  const tendenciaLabel = estatisticas?.tendencia === "melhora"
-    ? "Em melhora"
-    : estatisticas?.tendencia === "queda"
-      ? "Em atenção"
-      : estatisticas?.tendencia === "estavel"
-        ? "Estável"
-        : "Sem histórico";
   const leituraProfessor = estatisticas ? obterLeituraProfessor(estatisticas) : null;
   const estilosLeitura = {
     alerta: "border-red-700 bg-[#FFF1F1]",
@@ -279,7 +254,7 @@ export default function AlunoDetalheView({
               <path d="M3 9 C 40 2, 70 13, 110 7 S 180 3, 217 8" stroke="currentColor" strokeWidth="5" strokeLinecap="round" />
             </svg>
             <p className="mt-3 max-w-xl text-sm font-semibold text-[#4A6B85]">
-              Acompanhe conquistas, dificuldades e próximos passos para apoiar a aprendizagem.
+              Respostas, conteúdos identificados e práticas sugeridas para este período.
             </p>
           </div>
 
@@ -311,14 +286,90 @@ export default function AlunoDetalheView({
           </div>
         )}
 
+        {estatisticas && !carregando && (
+          <section className="rounded-[28px] border-[3px] border-[#0A2E4A] bg-[#EBF5FF] p-5 shadow-[0_5px_0_0_#0A2E4A]">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[15px] border-2 border-[#0A2E4A] bg-[#FFC53D]">
+                  <BrainCircuit className="h-6 w-6" />
+                </span>
+                <div>
+                  <h2 className="font-sans text-xl font-extrabold">Recomendações de aprendizagem</h2>
+                  <p className="mt-1 max-w-xl text-xs font-semibold text-[#4A6B85]">
+                    Sugestões de estudo baseadas nos conteúdos e respostas deste período.
+                  </p>
+                </div>
+              </div>
+              {!insights && (
+                <button
+                  type="button"
+                  disabled={carregandoInsights || estatisticas.totalRespondidas === 0}
+                  onClick={solicitarInsights}
+                  className="inline-flex items-center gap-2 rounded-full border-2 border-[#0A2E4A] bg-[#FFC53D] px-4 py-2.5 text-sm font-extrabold shadow-[0_3px_0_0_#0A2E4A] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  {carregandoInsights ? "Preparando..." : "Gerar recomendações"}
+                </button>
+              )}
+            </div>
+            {estatisticas.totalRespondidas === 0 && (
+              <p className="mt-4 text-xs font-bold text-[#4A6B85]">
+                As recomendações ficam disponíveis após uma resposta neste período.
+              </p>
+            )}
+            {erroInsights && (
+              <p role="alert" className="mt-4 rounded-xl border-2 border-[#0A2E4A] bg-[#FFE3E3] p-3 text-xs font-bold text-[#8A1F1F]">
+                {erroInsights}
+              </p>
+            )}
+            {carregandoInsights && (
+              <div className="mt-4 flex items-center gap-2 rounded-xl bg-white/80 p-4 text-sm font-bold">
+                <Sparkles className="h-4 w-4 animate-pulse" />
+                Preparando recomendações a partir das respostas...
+              </div>
+            )}
+            {insights && (
+              <div className="mt-5 space-y-4 rounded-[22px] border-2 border-[#0A2E4A] bg-white p-5">
+                <p className="text-sm font-bold">{insights.resumo}</p>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <h3 className="mb-2 inline-flex items-center gap-2 text-sm font-extrabold">
+                      <Target className="h-4 w-4" /> Conteúdos para retomar
+                    </h3>
+                    <ul className="list-inside list-disc space-y-1 text-xs font-semibold">
+                      {insights.conteudosParaRetomar.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className="mb-2 inline-flex items-center gap-2 text-sm font-extrabold">
+                      <Lightbulb className="h-4 w-4" /> Recomendações de estudo
+                    </h3>
+                    <ul className="list-inside list-disc space-y-1 text-xs font-semibold">
+                      {insights.recomendacoesDeEstudo.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}
+                    </ul>
+                  </div>
+                </div>
+                <p className="rounded-xl bg-[#D1F2D9]/60 p-3 text-xs font-semibold">
+                  <strong>Próxima prática:</strong> {insights.proximaPratica}
+                </p>
+              </div>
+            )}
+            {!insights && !carregandoInsights && erroInsights && estatisticas.totalRespondidas > 0 && (
+              <button type="button" onClick={solicitarInsights} className="mt-3 inline-flex items-center gap-2 rounded-full border-2 border-[#0A2E4A] bg-white px-3 py-1.5 text-xs font-extrabold">
+                <Sparkles className="h-3.5 w-3.5" /> Tentar novamente
+              </button>
+            )}
+          </section>
+        )}
+
         <section>
-          <TituloSecao titulo="Resumo do período" descricao="Indicadores rápidos para decidir o que precisa de atenção." />
+          <TituloSecao titulo="Resumo do período" descricao="Indicadores das respostas e entregas registradas neste período." />
           {carregando ? (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              {Array.from({ length: 4 }, (_, indice) => <div key={indice} className="h-36 animate-pulse rounded-[22px] bg-white" />)}
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {Array.from({ length: 3 }, (_, indice) => <div key={indice} className="h-36 animate-pulse rounded-[22px] bg-white" />)}
             </div>
           ) : estatisticas ? (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               <CartaoIndicador
                 rotulo="TAXA DE ACERTO"
                 valor={formatarPercentual(estatisticas.percentual)}
@@ -327,12 +378,6 @@ export default function AlunoDetalheView({
                 icone={estatisticas.faixa === "apoio"
                   ? <AlertTriangle className="h-5 w-5" />
                   : <CheckCircle2 className="h-5 w-5" />}
-              />
-              <CartaoIndicador
-                rotulo="ÍNDICE GERAL DA TURMA"
-                valor={formatarPercentual(estatisticas.mediaTurma)}
-                detalhe="Aproveitamento geral registrado no período"
-                cor="bg-[#BFE3F7]"
               />
               <CartaoIndicador
                 rotulo="ENTREGAS"
@@ -344,7 +389,7 @@ export default function AlunoDetalheView({
                   : <CheckCircle2 className="h-5 w-5" />}
               />
               <CartaoIndicador
-                rotulo="SINAL DE ACOMPANHAMENTO"
+                rotulo="SÍNTESE DO PERÍODO"
                 valor={leituraProfessor?.status ?? "—"}
                 detalhe="Síntese do desempenho e das entregas"
                 cor={leituraProfessor?.cor}
@@ -395,12 +440,8 @@ export default function AlunoDetalheView({
             <section className="rounded-[28px] border-[3px] border-[#0A2E4A] bg-white p-5 shadow-[0_5px_0_0_#0A2E4A]">
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <TituloSecao titulo="Evolução do desempenho" descricao="Acompanhe a trajetória individual do aluno em cada avaliação respondida." />
+                  <TituloSecao titulo="Resultados por avaliação" descricao="Taxa de acerto registrada em cada avaliação respondida." />
                 </div>
-                <span className={`inline-flex items-center gap-2 rounded-full border-2 border-[#0A2E4A] px-3 py-1 text-xs font-extrabold ${estatisticas.tendencia === "melhora" ? "bg-[#D1F2D9]" : estatisticas.tendencia === "queda" ? "bg-[#FFE3E3]" : "bg-[#FFEFC2]"}`}>
-                  {estatisticas.tendencia === "queda" ? <TrendingDown className="h-4 w-4" /> : <TrendingUp className="h-4 w-4" />}
-                  {tendenciaLabel}{estatisticas.variacaoRecente === null ? "" : ` · ${estatisticas.variacaoRecente > 0 ? "+" : ""}${estatisticas.variacaoRecente} pts`}
-                </span>
               </div>
               {!estatisticas.evolucao.length ? (
                 <p className="rounded-2xl bg-[#F6FBFF] py-10 text-center text-sm font-semibold text-[#4A6B85]">
@@ -429,24 +470,25 @@ export default function AlunoDetalheView({
 
             <div className="grid gap-5 lg:grid-cols-2">
               <section id="maiores-dificuldades" className="rounded-[28px] border-[3px] border-[#0A2E4A] bg-white p-5 shadow-[0_5px_0_0_#0A2E4A]">
-                <TituloSecao titulo="Maiores dificuldades" descricao="Causas de erro recorrentes que podem orientar uma retomada direcionada." />
+                <TituloSecao titulo="Dificuldades observadas" descricao="Conteúdos associados a respostas incorretas neste período." />
                 {!estatisticas.causasRaiz.length ? (
                   <p className="rounded-2xl bg-[#F6FBFF] p-5 text-sm font-semibold text-[#4A6B85]">Nenhuma dificuldade foi identificada nas respostas deste período.</p>
                 ) : (
                   <ul className="space-y-3">
-                    {estatisticas.causasRaiz.slice(0, 6).map((causa) => {
-                      const maximo = estatisticas.causasRaiz[0].totalErros;
-                      return <li key={causa.causaRaiz}>
-                        <div className="mb-1 flex justify-between gap-2 text-xs font-bold"><span>{causa.causaRaiz}</span><span>{causa.totalErros} erros</span></div>
-                        <div className="h-2 overflow-hidden rounded-full bg-[#EBF5FF]"><div className="h-full rounded-full bg-[#FF8A65]" style={{ width: `${(causa.totalErros / maximo) * 100}%` }} /></div>
-                      </li>;
-                    })}
+                    {[...estatisticas.causasRaiz]
+                      .sort((a, b) => a.causaRaiz.localeCompare(b.causaRaiz, "pt-BR"))
+                      .map((causa) => (
+                        <li key={causa.causaRaiz} className="flex justify-between gap-2 rounded-xl bg-[#FFF1F1] px-3 py-2 text-xs font-bold">
+                          <span>{causa.causaRaiz}</span>
+                          <span>{causa.totalErros} respostas incorretas</span>
+                        </li>
+                      ))}
                   </ul>
                 )}
                 <div className="mt-5 border-t border-[#0A2E4A]/15 pt-4">
-                  <h3 className="mb-2 inline-flex items-center gap-2 font-sans text-sm font-extrabold"><Target className="h-4 w-4" /> Pontos fortes observados</h3>
+                  <h3 className="mb-2 inline-flex items-center gap-2 font-sans text-sm font-extrabold"><Target className="h-4 w-4" /> Acertos por conteúdo</h3>
                   {!estatisticas.pontosFortes.length ? (
-                    <p className="text-xs font-semibold text-[#4A6B85]">Mais respostas serão necessárias para identificar habilidades consolidadas.</p>
+                    <p className="text-xs font-semibold text-[#4A6B85]">Ainda não há acertos recorrentes suficientes registrados por conteúdo.</p>
                   ) : <ul className="space-y-2">{estatisticas.pontosFortes.map((ponto) => <li key={ponto.campo} className="flex justify-between gap-2 rounded-xl bg-[#D1F2D9]/60 px-3 py-2 text-xs"><span className="font-bold">{ponto.campo}</span><span className="shrink-0 font-extrabold">{ponto.percentual}% ({ponto.totalAcertos}/{ponto.totalCampos})</span></li>)}</ul>}
                 </div>
               </section>
@@ -498,35 +540,6 @@ export default function AlunoDetalheView({
               )}
             </section>
 
-            <section className="rounded-[28px] border-[3px] border-[#0A2E4A] bg-[#EBF5FF] p-5 shadow-[0_5px_0_0_#0A2E4A]">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[15px] border-2 border-[#0A2E4A] bg-[#FFC53D]"><BrainCircuit className="h-6 w-6" /></span>
-                  <div><h2 className="font-sans text-xl font-extrabold">Insights para apoiar o aluno</h2><p className="mt-1 max-w-xl text-xs font-semibold text-[#4A6B85]">Sugestões pedagógicas com base nos indicadores, geradas somente quando você solicitar.</p></div>
-                </div>
-                {!insights && (
-                  <button type="button" disabled={carregandoInsights || estatisticas.totalRespondidas === 0} onClick={solicitarInsights} className="inline-flex items-center gap-2 rounded-full border-2 border-[#0A2E4A] bg-[#FFC53D] px-4 py-2.5 text-sm font-extrabold shadow-[0_3px_0_0_#0A2E4A] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60">
-                    <Sparkles className="h-4 w-4" />{carregandoInsights ? "Analisando..." : "Gerar insights por IA"}
-                  </button>
-                )}
-              </div>
-              {estatisticas.totalRespondidas === 0 && <p className="mt-4 text-xs font-bold text-[#4A6B85]">A IA estará disponível após o aluno responder uma avaliação neste período.</p>}
-              {erroInsights && <p role="alert" className="mt-4 rounded-xl border-2 border-[#0A2E4A] bg-[#FFE3E3] p-3 text-xs font-bold text-[#8A1F1F]">{erroInsights}</p>}
-              {carregandoInsights && <div className="mt-4 flex items-center gap-2 rounded-xl bg-white/80 p-4 text-sm font-bold"><Sparkles className="h-4 w-4 animate-pulse" /> Preparando sugestões com os dados do período...</div>}
-              {insights && (
-                <div className="mt-5 space-y-4 rounded-[22px] border-2 border-[#0A2E4A] bg-white p-5">
-                  <p className="text-sm font-bold">{insights.resumo}</p>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div><h3 className="mb-2 inline-flex items-center gap-2 text-sm font-extrabold"><Target className="h-4 w-4" /> Prioridades</h3><ul className="list-inside list-disc space-y-1 text-xs font-semibold">{insights.prioridades.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}</ul></div>
-                    <div><h3 className="mb-2 inline-flex items-center gap-2 text-sm font-extrabold"><Lightbulb className="h-4 w-4" /> Estratégias para experimentar</h3><ul className="list-inside list-disc space-y-1 text-xs font-semibold">{insights.estrategias.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}</ul></div>
-                  </div>
-                  <p className="rounded-xl bg-[#D1F2D9]/60 p-3 text-xs font-semibold"><strong>Acompanhe assim:</strong> {insights.acompanhamento}</p>
-                </div>
-              )}
-              {!insights && !carregandoInsights && erroInsights && estatisticas.totalRespondidas > 0 && (
-                <button type="button" onClick={solicitarInsights} className="mt-3 inline-flex items-center gap-2 rounded-full border-2 border-[#0A2E4A] bg-white px-3 py-1.5 text-xs font-extrabold"><Sparkles className="h-3.5 w-3.5" /> Tentar novamente</button>
-              )}
-            </section>
           </>
         )}
 

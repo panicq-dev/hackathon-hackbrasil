@@ -101,7 +101,7 @@ export default function ModalRespostasProfessor({ avaliacaoId, onFechar }: Modal
               </h2>
             </div>
             <p className="text-xs font-semibold text-[#4A6B85]">
-              Visualize os alunos que responderam e os dados consolidados para análise de gaps.
+              Visualize os alunos que responderam e os dados agregados para análise de lacunas.
             </p>
           </div>
 
@@ -150,7 +150,7 @@ export default function ModalRespostasProfessor({ avaliacaoId, onFechar }: Modal
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#0A2E4A] border-t-[#2496ED]" />
               <p className="mt-3 font-sans text-base font-bold text-[#4A6B85]">
-                Carregando dados consolidados...
+                Carregando dados agregados...
               </p>
             </div>
           ) : erro ? (
