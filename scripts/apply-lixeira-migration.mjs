@@ -24,12 +24,13 @@ if (!process.env.DATABASE_URL) {
       for (const migration of [
         '0001_lixeira_registros.sql',
         '0002_corrigir_alunos_de_turmas_arquivadas.sql',
+        '0003_avatares_perfil.sql',
       ]) {
         const sql = fs.readFileSync(path.join(scriptDir, '..', 'drizzle', migration), 'utf8');
         await client.query(sql);
       }
       await client.query('COMMIT');
-      console.log('Migrações da lixeira aplicadas com sucesso.');
+      console.log('Migrações aplicadas com sucesso.');
     } catch (error) {
       if (client) {
         await client.query('ROLLBACK');

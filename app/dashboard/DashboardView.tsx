@@ -12,10 +12,9 @@ import {
   LayoutDashboard,
   Library,
   LogOut,
-  ShieldCheck,
-  GraduationCap,
   ArrowRight,
   Trash2,
+  Settings,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { UsuarioSessao } from '@/app/src/lib/session';
@@ -27,6 +26,7 @@ import {
   TurmaItem,
 } from '@/app/actions/turmas';
 import { enviarParaLixeira } from '@/app/actions/lixeira';
+import AvatarPerfil from '@/app/src/componentes/AvatarPerfil';
 
 const BOLINHA =
   'flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-[#0A2E4A] transition motion-safe:duration-200 group-hover:scale-110 group-active:scale-95';
@@ -45,17 +45,25 @@ const FOCO =
 export function DashboardChrome({
   usuario,
   children,
+  onLogout,
 }: {
   usuario: UsuarioSessao;
   children: ReactNode;
+  onLogout?: () => void;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const isProfessor = usuario.perfil === 'professor';
   const estaNaLixeira = pathname === '/lixeira';
+  const estaNasConfiguracoes = pathname === '/configuracoes';
+  const estaNoDashboard =
+    pathname === '/' || pathname === '/dashboard' || pathname.startsWith('/dashboard/turmas/');
+  const estaNasAvaliacoes = pathname === '/avaliacoes';
+  const estaNoBanco = pathname === '/banco-de-questoes';
 
   async function handleLogout() {
     await logoutUsuario();
+    onLogout?.();
     router.refresh();
     router.push('/login');
   }
@@ -77,16 +85,8 @@ export function DashboardChrome({
       <div className="relative z-30 mx-auto mb-8 max-w-5xl">
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-[26px] border-[3px] border-[#0A2E4A] bg-white px-5 py-3 shadow-[0_5px_0_0_#0A2E4A]">
           <div className="flex items-center gap-3">
-            <span
-              className={`flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#0A2E4A] ${
-                isProfessor ? 'bg-[#FFC53D]' : 'bg-[#4ECDC4]'
-              }`}
-            >
-              {isProfessor ? (
-                <ShieldCheck className="h-5 w-5 text-[#0A2E4A]" />
-              ) : (
-                <GraduationCap className="h-5 w-5 text-[#0A2E4A]" />
-              )}
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-[#0A2E4A]">
+              <AvatarPerfil avatarId={usuario.avatarId} className="h-full w-full" />
             </span>
 
             <div>
@@ -125,7 +125,7 @@ export function DashboardChrome({
       <nav
         aria-label="Navegação principal"
         className={[
-          'fixed z-40 flex gap-4',
+          'fixed z-40 flex gap-2 md:gap-4',
           'bottom-5 left-1/2 -translate-x-1/2 flex-row rounded-full border-[3px] border-[#0A2E4A] bg-white/90 px-4 py-3 shadow-[0_5px_0_0_#0A2E4A] backdrop-blur',
           'md:bottom-auto md:left-6 md:top-1/2 md:-translate-y-1/2 md:translate-x-0 md:flex-col md:px-3 md:py-4',
         ].join(' ')}
@@ -133,14 +133,14 @@ export function DashboardChrome({
         <Link
           href="/dashboard"
           aria-label="Dashboard"
-          aria-current={!estaNaLixeira ? 'page' : undefined}
+          aria-current={estaNoDashboard ? 'page' : undefined}
           className={FOCO}
         >
           <span
             className={`${BOLINHA} ${
-              estaNaLixeira
-                ? 'bg-white group-hover:bg-[#C6EFE9]'
-                : '-translate-y-0.5 bg-[#FFC53D] shadow-[0_4px_0_0_#0A2E4A]'
+              estaNoDashboard
+                ? '-translate-y-0.5 bg-[#FFC53D] shadow-[0_4px_0_0_#0A2E4A]'
+                : 'bg-white group-hover:bg-[#C6EFE9]'
             }`}
           >
             <LayoutDashboard className="h-6 w-6" strokeWidth={2.4} />
@@ -148,16 +148,26 @@ export function DashboardChrome({
           <span className={ROTULO}>Dashboard</span>
         </Link>
 
-        <Link href="/avaliacoes" aria-label="Avaliações" className={FOCO}>
-          <span className={`${BOLINHA} bg-white group-hover:bg-[#C6EFE9]`}>
+        <Link
+          href="/avaliacoes"
+          aria-label="Avaliações"
+          aria-current={estaNasAvaliacoes ? 'page' : undefined}
+          className={FOCO}
+        >
+          <span className={`${BOLINHA} ${estaNasAvaliacoes ? '-translate-y-0.5 bg-[#FFC53D] shadow-[0_4px_0_0_#0A2E4A]' : 'bg-white group-hover:bg-[#C6EFE9]'}`}>
             <ClipboardCheck className="h-6 w-6" strokeWidth={2.4} />
           </span>
           <span className={ROTULO}>Avaliações</span>
         </Link>
 
         {isProfessor && (
-          <Link href="/banco-de-questoes" aria-label="Banco de Questões" className={FOCO}>
-            <span className={`${BOLINHA} bg-white group-hover:bg-[#FFD3DB]`}>
+          <Link
+            href="/banco-de-questoes"
+            aria-label="Banco de Questões"
+            aria-current={estaNoBanco ? 'page' : undefined}
+            className={FOCO}
+          >
+            <span className={`${BOLINHA} ${estaNoBanco ? '-translate-y-0.5 bg-[#FFC53D] shadow-[0_4px_0_0_#0A2E4A]' : 'bg-white group-hover:bg-[#FFD3DB]'}`}>
               <Library className="h-6 w-6" strokeWidth={2.4} />
             </span>
             <span className={ROTULO}>Banco de Questões</span>
@@ -183,6 +193,18 @@ export function DashboardChrome({
             <span className={ROTULO}>Lixeira</span>
           </Link>
         )}
+
+        <Link
+          href="/configuracoes"
+          aria-label="Configurações"
+          aria-current={estaNasConfiguracoes ? 'page' : undefined}
+          className={FOCO}
+        >
+          <span className={`${BOLINHA} ${estaNasConfiguracoes ? '-translate-y-0.5 bg-[#FFC53D] shadow-[0_4px_0_0_#0A2E4A]' : 'bg-white group-hover:bg-[#C6EFE9]'}`}>
+            <Settings className="h-6 w-6" strokeWidth={2.4} />
+          </span>
+          <span className={ROTULO}>Configurações</span>
+        </Link>
       </nav>
 
       {children}
@@ -497,7 +519,7 @@ export default function DashboardView({ usuario }: { usuario: UsuarioSessao }) {
             </div>
             <div className="mt-5">
               <Link
-                href="/"
+                href="/avaliacoes"
                 className="inline-flex items-center gap-1 rounded-xl border-2 border-[#0A2E4A] bg-[#2496ED] px-4 py-2 font-sans text-xs font-extrabold text-white shadow-[0_2px_0_0_#16457E]"
               >
                 <span>Ver avaliações</span>

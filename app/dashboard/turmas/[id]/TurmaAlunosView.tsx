@@ -6,17 +6,18 @@ import { useState } from 'react';
 import {
   ArrowLeft,
   Users,
-  ShieldCheck,
   LogOut,
   LayoutDashboard,
   ClipboardCheck,
   Library,
   Trash2,
+  Settings,
 } from 'lucide-react';
 import { UsuarioSessao } from '@/app/src/lib/session';
 import { logoutUsuario } from '@/app/actions/login';
 import { AlunoTurma } from '@/app/actions/turmas';
 import { enviarParaLixeira } from '@/app/actions/lixeira';
+import AvatarPerfil from '@/app/src/componentes/AvatarPerfil';
 
 const BOLINHA =
   'flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-[#0A2E4A] transition motion-safe:duration-200 group-hover:scale-110 group-active:scale-95';
@@ -88,8 +89,8 @@ export default function TurmaAlunosView({ usuario, turmaId, turmaNome, alunos }:
       <div className="relative z-30 mx-auto mb-8 max-w-5xl">
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-[26px] border-[3px] border-[#0A2E4A] bg-white px-5 py-3 shadow-[0_5px_0_0_#0A2E4A]">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#0A2E4A] bg-[#FFC53D]">
-              <ShieldCheck className="h-5 w-5 text-[#0A2E4A]" />
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-[#0A2E4A]">
+              <AvatarPerfil avatarId={usuario.avatarId} className="h-full w-full" />
             </span>
 
             <div>
@@ -121,7 +122,7 @@ export default function TurmaAlunosView({ usuario, turmaId, turmaNome, alunos }:
       <nav
         aria-label="Navegação principal"
         className={[
-          'fixed z-40 flex gap-4',
+          'fixed z-40 flex gap-2 md:gap-4',
           'bottom-5 left-1/2 -translate-x-1/2 flex-row rounded-full border-[3px] border-[#0A2E4A] bg-white/90 px-4 py-3 shadow-[0_5px_0_0_#0A2E4A] backdrop-blur',
           'md:bottom-auto md:left-6 md:top-1/2 md:-translate-y-1/2 md:translate-x-0 md:flex-col md:px-3 md:py-4',
         ].join(' ')}
@@ -152,6 +153,13 @@ export default function TurmaAlunosView({ usuario, turmaId, turmaNome, alunos }:
             <Trash2 className="h-6 w-6" />
           </span>
           <span className={ROTULO}>Lixeira</span>
+        </Link>
+
+        <Link href="/configuracoes" aria-label="Configurações" className={FOCO}>
+          <span className={`${BOLINHA} bg-white group-hover:bg-[#C6EFE9]`}>
+            <Settings className="h-6 w-6" strokeWidth={2.4} />
+          </span>
+          <span className={ROTULO}>Configurações</span>
         </Link>
       </nav>
 

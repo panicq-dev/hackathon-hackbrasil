@@ -6,6 +6,8 @@ import { Avaliacoes, EstruturaQuestao } from '@/app/src/types/index';
 import { salvarRespostaAluno } from '@/app/actions/avaliacoes';
 import { publicarQuestaoComunidade } from '@/app/actions/questoes';
 
+const LIMITE_CARACTERES_RESPOSTA = 100;
+
 export type AvaliacaoCompleta = Avaliacoes & {
   respondidaPorMim?: boolean;
   minhasRespostas?: Record<string, string | number>;
@@ -14,7 +16,7 @@ export type AvaliacaoCompleta = Avaliacoes & {
 export interface AvaliacaoProps {
   avaliacao?: AvaliacaoCompleta | null;
   perfilUsuario?: 'professor' | 'aluno';
-  onRespostasEnviadas?: () => void;
+  onRespostasEnviadas?: (avaliacaoId: string) => void | Promise<void>;
 }
 
 export default function Avaliacao({
@@ -52,7 +54,7 @@ export default function Avaliacao({
   function handleValorChange(campoId: string, valor: string) {
     setRespostas((prev) => ({
       ...prev,
-      [campoId]: valor,
+      [campoId]: valor.slice(0, LIMITE_CARACTERES_RESPOSTA),
     }));
   }
 
@@ -112,7 +114,7 @@ export default function Avaliacao({
       } else {
         setMensagemSucesso('Respostas salvas e enviadas com sucesso!');
         if (onRespostasEnviadas) {
-          onRespostasEnviadas();
+          await onRespostasEnviadas(avaliacao.id);
         }
       }
     } catch {
@@ -251,6 +253,7 @@ export default function Avaliacao({
                     ) : (
                       <input
                         type={campo.tipo === 'numero' ? 'text' : 'text'}
+                        maxLength={LIMITE_CARACTERES_RESPOSTA}
                         value={respostas[campo.id] ?? ''}
                         onChange={(e) => handleValorChange(campo.id, e.target.value)}
                         disabled={jaRespondida}

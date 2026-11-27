@@ -13,9 +13,8 @@ import {
   Library,
   LogOut,
   Users,
-  ShieldCheck,
-  GraduationCap,
   Trash2,
+  Settings,
 } from 'lucide-react';
 import { Avaliacoes } from '@/app/src/types/index';
 import GeradorAvaliativo from '@/app/src/componentes/GeradorAvaliativo';
@@ -31,6 +30,7 @@ import {
 } from '@/app/actions/login';
 import { UsuarioSessao } from '@/app/src/lib/session';
 import { enviarParaLixeira } from '@/app/actions/lixeira';
+import AvatarPerfil from '@/app/src/componentes/AvatarPerfil';
 
 const ROTA_DASHBOARD = '/dashboard';
 const ROTA_BANCO = '/banco-de-questoes';
@@ -71,8 +71,8 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
   const [erroCarregamento, setErroCarregamento] = useState('');
   const [avaliacaoEmOperacao, setAvaliacaoEmOperacao] = useState<string | null>(null);
 
-  const carregarDados = useCallback(async () => {
-    setCarregando(true);
+  const carregarDados = useCallback(async (mostrarCarregamento = true) => {
+    if (mostrarCarregamento) setCarregando(true);
     setErroCarregamento('');
     try {
       let userAtual = usuarioInicial;
@@ -83,7 +83,7 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
 
       const res = await listarAvaliacoes();
       if (res.erro) {
-        setAvaliacoes([]);
+        if (mostrarCarregamento) setAvaliacoes([]);
         setErroCarregamento(res.erro);
       } else {
         setAvaliacoes(res.avaliacoes ?? []);
@@ -92,9 +92,19 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
       console.error('Erro ao buscar dados:', e);
       setErroCarregamento('Não foi possível carregar as avaliações.');
     } finally {
-      setCarregando(false);
+      if (mostrarCarregamento) setCarregando(false);
     }
   }, [usuarioInicial]);
+
+  function handleRespostasEnviadas(avaliacaoId: string) {
+    setAvaliacoes((atuais) =>
+      atuais.map((item) =>
+        item.id === avaliacaoId ? { ...item, respondidaPorMim: true } : item
+      )
+    );
+    setAvaliacaoSelecionada(null);
+    void carregarDados(false);
+  }
 
   useEffect(() => {
     let cancelado = false;
@@ -171,16 +181,8 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
       <div className="relative z-30 mx-auto mb-8 max-w-5xl">
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-[26px] border-[3px] border-[#0A2E4A] bg-white px-5 py-3 shadow-[0_5px_0_0_#0A2E4A]">
           <div className="flex items-center gap-3">
-            <span
-              className={`flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#0A2E4A] ${
-                isProfessor ? 'bg-[#FFC53D]' : 'bg-[#4ECDC4]'
-              }`}
-            >
-              {isProfessor ? (
-                <ShieldCheck className="h-5 w-5 text-[#0A2E4A]" />
-              ) : (
-                <GraduationCap className="h-5 w-5 text-[#0A2E4A]" />
-              )}
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-[#0A2E4A]">
+              <AvatarPerfil avatarId={usuario?.avatarId} className="h-full w-full" />
             </span>
 
             <div>
@@ -223,7 +225,7 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
       <nav
         aria-label="Navegação principal"
         className={[
-          'fixed z-40 flex gap-4',
+          'fixed z-40 flex gap-2 md:gap-4',
           'bottom-5 left-1/2 -translate-x-1/2 flex-row rounded-full border-[3px] border-[#0A2E4A] bg-white/90 px-4 py-3 shadow-[0_5px_0_0_#0A2E4A] backdrop-blur',
           'md:bottom-auto md:left-6 md:top-1/2 md:-translate-y-1/2 md:translate-x-0 md:flex-col md:px-3 md:py-4',
         ].join(' ')}
@@ -257,6 +259,13 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
           </Link>
         )}
 
+        <Link href="/configuracoes" aria-label="Configurações" className={FOCO}>
+          <span className={`${BOLINHA} bg-white group-hover:bg-[#C6EFE9]`}>
+            <Settings className="h-6 w-6" strokeWidth={2.4} />
+          </span>
+          <span className={ROTULO}>Configurações</span>
+        </Link>
+
         {isProfessor && (
           <Link href="/lixeira" aria-label="Lixeira" className={FOCO}>
             <span className={`${BOLINHA} bg-[#FFE3E3] text-red-700 group-hover:bg-[#FFD3DB]`}>
@@ -288,6 +297,12 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
           </p>
         </header>
 
+        {erroCarregamento && avaliacoes.length > 0 && (
+          <p role="alert" className="mb-4 rounded-[20px] border-2 border-[#0A2E4A] bg-[#FFE3E3] px-4 py-3 text-sm font-bold text-[#8A1F1F]">
+            {erroCarregamento}
+          </p>
+        )}
+
         {carregando ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#0A2E4A] border-t-[#FFC53D]" />
@@ -309,10 +324,10 @@ export default function AbaAvaliacao({ usuarioInicial = null, onLogout }: AbaAva
             <Avaliacao
               avaliacao={avaliacaoSelecionada}
               perfilUsuario={usuario?.perfil}
-              onRespostasEnviadas={carregarDados}
+              onRespostasEnviadas={handleRespostasEnviadas}
             />
           </div>
-        ) : erroCarregamento ? (
+        ) : erroCarregamento && avaliacoes.length === 0 ? (
           <div
             role="alert"
             className="rounded-[24px] border-[3px] border-[#0A2E4A] bg-[#FFE3E3] p-5 text-sm font-bold text-[#8A1F1F] shadow-[0_4px_0_0_#0A2E4A]"
