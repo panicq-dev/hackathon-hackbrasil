@@ -270,7 +270,7 @@ Utilizados para listar avaliações, turmas e métricas:
 ---
 
 ### 3.5 Gerador de Avaliação com IA (`GeradorAvaliativo`)
-Interface de comando onde o professor insere temas e solicita a geração via Gemini:
+Interface de comando onde o professor insere temas e solicita a geração via Groq:
 
 ```tsx
 <form className="relative w-full rounded-[32px] border-[3px] border-[#0A2E4A] bg-white p-6 shadow-[0_8px_0_0_#0A2E4A]">
@@ -311,7 +311,7 @@ Interface de comando onde o professor insere temas e solicita a geração via Ge
     className="mt-6 flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border-[3px] border-[#0A2E4A] bg-[#FFC53D] py-3.5 font-['Baloo_2'] text-base font-extrabold text-[#0A2E4A] shadow-[0_4px_0_0_#0A2E4A] transition hover:brightness-105 active:translate-y-0.5"
   >
     <Sparkles className="h-5 w-5 text-[#0A2E4A]" />
-    <span>Gerar Avaliação com Gemini IA</span>
+    <span>Gerar Avaliação com IA (Groq)</span>
   </button>
 </form>
 ```
